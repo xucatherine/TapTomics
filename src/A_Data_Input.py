@@ -1,22 +1,24 @@
-# Should we ask the user for brief description of conditions and positive/negative sets?
-# could be stored in text files to keep track of data meaning but not necessary
+# Should we ask the user for brief description of variabes and positive/negative sets?
+    # could be stored in text files to keep track of data meaning but not necessary
+
+# Needs to be modified to allow for several (more than p vs n) conditions
 
 
 # Folder Architecture
 '''
 folder: Samples
-    folder: condition_x
-        folder: pSRAs
+    folder: variable_x
+        folder: p_cond
             folder: SRA (subfiles can be added later)
                 file: FASTA
             [more SRA folders]
-        folder: nSRAs
+        folder: n_cond
             folder: SRA
                 file: FASTA
             [more SRA folders]
-    folder: condition_y
+    folder: variable_y
         [...]
-    [more conditions folders]
+    [more variable folders]
 '''
 
 # Installs
@@ -42,22 +44,22 @@ Samples_path = path+"/Samples"
 os.makedirs(Samples_path, exist_ok=True)
 
 # Adding condition folders
-print("Using differential analysis to decode metabolic pathways involves identifying conditions under which expression of the phenotype of interest differs.")
-print("Each condition thus has a positive and negative set, where positive means the phenotype of interest is increased/expressed/observed.")
-print("Ex: In studying yeast respiration, temperature is a condition, where heat is positive (increased respiration) and freezing would be negative.")
-print("\nHow many differential conditions are you considering for your pathway? (minimum 1)")
-print("For each condition, you will be asked to list the SRA accession numbers for the positive and negative sets.")
-n = input("number of conditions studied: ") #[user inputs answer]
-# make a condition folder for each condition, with 'p_SRAs' and 'n_SRAs' set
+print("Using differential analysis to decode metabolic pathways involves identifying experimental variables under which expression of the phenotype of interest differs.")
+print("Each variable thus has a positive and negative condition, where positive means the phenotype of interest is increased/expressed/observed.")
+print("Ex: In studying yeast respiration, temperature is a variable, where heat is the positive condition (increased respiration) and freezing would be negative.")
+print("\nHow many variables are you considering for your pathway? (minimum 1)")
+print("For each variable, you will be asked to list the SRA accession numbers for the positive and negative conditions.")
+n = input("number of variables studied: ") #[user inputs answer]
+# make a variable folder for each variable, with 'p_SRAs' and 'n_SRAs' set
 for i in range(n):
-    cond_path = Samples_path+"/condition_"+str(n) # folders will be named condition_1, condition_2, condition_3...
-    os.makedirs(cond_path, exist_ok=True)
-    p_SRAs_path = cond_path+"/p_SRAs"
+    var_path = Samples_path+"/variable_"+str(n) # folders will be named variable_1, variable_2, variable_3...
+    os.makedirs(var_path, exist_ok=True)
+    p_SRAs_path = var_path+"/p_SRAs"
     os.makedirs(p_SRAs_path, exist_ok=True)
-    n_SRAs_path = cond_path+"/n_SRAs"
+    n_SRAs_path = var_path+"/n_SRAs"
     os.makedirs(n_SRAs_path, exist_ok=True)
 
-# Extracting SRA FASTA files for each condition
+# Extracting SRA FASTA files for each variable
 for i in range(n):
     print("List the SRA numbers of your positive set (phenotype of interest increased/expressed/observed), seperated by spaces.")
     print("ex: SRR12345678 SRR91011109 SRR87654321")
@@ -70,7 +72,7 @@ for i in range(n):
     for i in len(p_SRAs_list):
         SRA = p_SRAs_list[i-1] # should give something like SRR12345678
         # new SRA folder
-        SRA_path = Samples_path+"/condition_"+str(n)+"/p_SRAs"+"/"+SRA # new folder named as SRA
+        SRA_path = Samples_path+"/variable_"+str(n)+"/p_SRAs"+"/"+SRA # new folder named as SRA
         os.makedirs(SRA_path, exist_ok=True)
         # retrieve FASTA file (script by ChatGPT)
         handle = Entrez.efetch(db="nucleotide", id=SRA, rettype="fasta", retmode="text")
@@ -82,7 +84,7 @@ for i in range(n):
     # same thing but for nSRAs
     for i in len(n_SRAs_list):
         SRA = n_SRAs_list[i-1] 
-        SRA_path = Samples_path+"/condition_"+str(n)+"/n_SRAs"+"/"+SRA
+        SRA_path = Samples_path+"/variable_"+str(n)+"/n_SRAs"+"/"+SRA
         os.makedirs(SRA_path, exist_ok=True)
         handle = Entrez.efetch(db="nucleotide", id=SRA, rettype="fasta", retmode="text")
         fasta_data = handle.read()
