@@ -5,7 +5,7 @@
 import HTSeq
 import subprocess
 
-def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path):
+def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path, strandedness):
     '''This function runs the htseq_count script from the HTSeq package.
     The script takes a BAM file of aligned RNA sequences (bam_file_path), 
     compares it to a GTF file of annotated genes (gene_annotation_path) 
@@ -20,6 +20,8 @@ def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path):
     
 
     # Ask the person to select stranded, unstranded or reverse stranded
+    ### Commented out bc this maybe should be something asked in the main script ###
+    ''' 
     check = True # This boolean will be switched off once the person enters a valid input
     while check:
         strandedness = input(["Please input whether you're RNA-seq library is \r", 
@@ -36,6 +38,7 @@ def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path):
         # Check that the input is valid
         if strandedness == "y" or strandedness == "n" or strandedness == "reverse":
             check = False
+    '''
     
     # set up the command that will run the htseq-count script
     htseq_command = [
