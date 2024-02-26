@@ -1,8 +1,11 @@
-# Should we ask the user for brief description of variabes and positive/negative sets?
-    # could be stored in text files to keep track of data meaning but not necessary
+## Should we ask the user for brief description of variables and positive/negative sets?
+    ## could be stored in text files to keep track of data meaning but not necessary
 
-# Needs to be modified to allow for several (more than p vs n) conditions
+## Needs to be modified to allow for several (more than p vs n) conditions
+## Needs to be modified to download Fastq files (not just FASTA)
 
+
+# For this script, we need gitpython and biopython installed
 
 # Folder Architecture
 '''
@@ -21,11 +24,9 @@ folder: Samples
     [more variable folders]
 '''
 
-# Installs
-pip install gitpython
+# Imports
 from git import Repo
     # using gitpython we can access GitHub to make new folders for user's data
-pip install biopython
 from Bio import Entrez, SeqIO
     # 'Entrez' allows us to send requests to NCBI databases
     # SeqIO is used for reading sequences
@@ -33,7 +34,7 @@ import os
     # we need this to edit folders
 
 # Setting up path to save folders in & email to access NCBI
-path = str(input("Please copy-paste the path link where you would like this program's functioning data stored: "))
+path = str(input("Please copy-paste a path link for where you would like this program's functioning data stored: "))
 repo = Repo.clone_from("https://github.com/xucatherine/bioinformatic-pipeline/src.git", path)
 Entrez.email = str(input("NCBI requires an email address to track usage of their services.\nPlease input your email address: "))
     # NCBI Entrez requires an email address (according to BioBuddy)

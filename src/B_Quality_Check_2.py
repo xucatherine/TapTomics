@@ -1,12 +1,14 @@
 
+## What does MultiQC compare? All FastQCs for a given variable, or condition?
+
 # This function gives a visual report summarizing FastQCs
+# For this script, we need multiqc installed
 
 # Inputs
-    # needs path to relevant condition
+    # needs path to relevant condition folder
 
-# Installs
+# Imports
 import subprocess
-pip install multiqc
 
 # Generating Quality Check Visuals
 def run_MultiQC(cond_path):

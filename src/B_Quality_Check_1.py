@@ -6,13 +6,13 @@
 
 
 # This function checks the quality of a FASTA file, so for several it must be implemented in a for-loop
+# For this script, we need fastqc installed
 
 # Inputs
     # needs path to FASTA file's SRA folder
     # needs path to FastQC (FastQC must be downloaded by user)
 
-# Installs
-pip install fastqc
+# Imports
 import subprocess
 
 # Running Quality Check
