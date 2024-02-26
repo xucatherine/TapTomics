@@ -87,3 +87,10 @@ def visualize_DESeq2(results_DF):
     such as MA plots, volcano plots, and heatmaps'''
     
     return
+
+
+## edgeR ##
+def run_edgeR():
+    '''May be better for small sample sizes (low number of biological replicates)
+    Consider running both edgeR and DeSeq2, or maybe choose one based on number of biological replicates?'''
+    return
