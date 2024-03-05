@@ -1,8 +1,8 @@
-## Should we ask the user for brief description of variables and positive/negative sets?
-    ## could be stored in text files to keep track of data meaning but not necessary
 
-## Needs to be modified to allow for several (more than p vs n) conditions
-## Needs to be modified to download Fastq files (not just FASTA)
+## Ask the user for brief description of variables and conditions?
+    ## could be stored in text files to keep track of data meaning but not necessary
+## Ask for a refernce genome?
+## Needs to be modified to download Fastq files (not just FASTA), but this is done differently
 
 
 # For this script, we need gitpython and biopython installed
@@ -10,16 +10,17 @@
 # Folder Architecture
 '''
 folder: Samples
-    folder: variable_x
-        folder: p_cond
+    folder: var_x
+        folder: cond_1
             folder: SRA (subfiles can be added later)
                 file: FASTA
             [more SRA folders]
-        folder: n_cond
+        folder: cond_2
             folder: SRA
                 file: FASTA
             [more SRA folders]
-    folder: variable_y
+        [more cond folders]
+    folder: var_y
         [...]
     [more variable folders]
 '''
@@ -46,52 +47,50 @@ os.makedirs(Samples_path, exist_ok=True)
 
 # Adding condition folders
 print("Using differential analysis to decode metabolic pathways involves identifying experimental variables under which expression of the phenotype of interest differs.")
-print("Each variable thus has a positive and negative condition, where positive means the phenotype of interest is increased/expressed/observed.")
-print("Ex: In studying yeast respiration, temperature is a variable, where heat is the positive condition (increased respiration) and freezing would be negative.")
+print("Through changing the variable's intensity, we create different experimental conditions under which transcriptomes can be collected and compared against each other.")
+print("Ex: In studying yeast respiration, temperature is a variable. Low, medium and high heat would correspond to 3 conditions, between which cellular respiration varies.")
 print("\nHow many variables are you considering for your pathway? (minimum 1)")
-print("For each variable, you will be asked to list the SRA accession numbers for the positive and negative conditions.")
+print("For each variable, you will be asked to input the number of conditions studied, and for each codnition list the corresponding SRA accession numbers.")
 n = input("number of variables studied: ") #[user inputs answer]
 # make a variable folder for each variable, with 'p_SRAs' and 'n_SRAs' set
 for i in range(n):
-    var_path = Samples_path+"/variable_"+str(n) # folders will be named variable_1, variable_2, variable_3...
+    var_path = Samples_path+"/var_"+str(n) # folders will be named var_1, var_2, var_3...
     os.makedirs(var_path, exist_ok=True)
-    p_SRAs_path = var_path+"/p_SRAs"
-    os.makedirs(p_SRAs_path, exist_ok=True)
-    n_SRAs_path = var_path+"/n_SRAs"
-    os.makedirs(n_SRAs_path, exist_ok=True)
+    k = input("number of conditions studied for variable " + str(n) + ': ') #[user inputs answer]
+    for j in range(k):
+        cond_path = var_path+"/cond_"+str(k) # folders will be named cond_1, cond_2, cond_3...
+        os.makedirs(cond_path, exist_ok=True)
 
 # Extracting SRA FASTA files for each variable
 for i in range(n):
-    print("List the SRA numbers of your positive set (phenotype of interest increased/expressed/observed), seperated by spaces.")
-    print("ex: SRR12345678 SRR91011109 SRR87654321")
-    p_SRAs = str(input("SRA numbers of your positive set: ")) #[user inputs pSRAs]
-    n_SRAs = str(input("SRA numbers of your negative set, seperated by spaces: ")) #[user inputs nSRAs]
-    # get list of SRAs
-    p_SRAs_list = p_SRAs.split()
-    n_SRAs_list = n_SRAs.split()
-    # retrieve FASTA files for pSRAs and store in folder
-    for i in len(p_SRAs_list):
-        SRA = p_SRAs_list[i-1] # should give something like SRR12345678
-        # new SRA folder
-        SRA_path = Samples_path+"/variable_"+str(n)+"/p_SRAs"+"/"+SRA # new folder named as SRA
-        os.makedirs(SRA_path, exist_ok=True)
-        # retrieve FASTA file (script by ChatGPT)
-        handle = Entrez.efetch(db="nucleotide", id=SRA, rettype="fasta", retmode="text")
-        fasta_data = handle.read()
-        handle.close()
-        # add FASTA file to folder
-        with open(SRA_path+"/FASTA", "w") as file:
-            file.write(fasta_data)
-    # same thing but for nSRAs
-    for i in len(n_SRAs_list):
-        SRA = n_SRAs_list[i-1] 
-        SRA_path = Samples_path+"/variable_"+str(n)+"/n_SRAs"+"/"+SRA
-        os.makedirs(SRA_path, exist_ok=True)
-        handle = Entrez.efetch(db="nucleotide", id=SRA, rettype="fasta", retmode="text")
-        fasta_data = handle.read()
-        handle.close()
-        with open(SRA_path+"/FASTA", "w") as file:
-            file.write(fasta_data)
+    var_path = Samples_path+"/var_"+str(n)
+    # counting conditions within var_n - there may be a more efficient way of doing this
+    cond_count = 0
+    for cond in os.listdir(var_path): # for condition folder in parent folder var_n
+        if os.path.isdir(os.path.join(var_path, cond)):
+            cond_count += 1          
+    # getting SRAs
+    for cond in os.listdir(var_path): # for condition folder in parent folder var_n
+        folder_name = os.path.basename(os.getcwd()) # this should give "cond_k", from which we can get k
+        k = int(folder_name.split("_")[1]) ## extract k from current cond
+        print("List the SRA numbers belonging to variable "+str(n)+"'s condition "+k+", seperated by spaces.")
+        print("ex: SRR12345678 SRR91011109 SRR87654321")
+        SRAs = str(input("SRA numbers: ")) #[user inputs SRAs]
+        # get list of SRAs
+        SRAs_list = SRAs.split()
+        # retrieve FASTA files for SRAs and store in folder
+        for i in len(SRAs_list):
+            SRA = SRAs_list[i-1] # should give something like SRR12345678
+            # new SRA folder
+            SRA_path = Samples_path+"/var_"+str(n)+"/cond_"+str(k)+"/SRAs"+"/"+SRA # new folder named as SRA number
+            os.makedirs(SRA_path, exist_ok=True)
+            # retrieve FASTA file (script by ChatGPT)
+            handle = Entrez.efetch(db="nucleotide", id=SRA, rettype="fasta", retmode="text")
+            fasta_data = handle.read()
+            handle.close()
+            # add FASTA file to folder
+            with open(SRA_path+"/FASTA", "w") as file:
+                file.write(fasta_data)
     # done!     
 
 print("Thank you! Your transcriptomes are ready for processing.")
