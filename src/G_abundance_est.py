@@ -5,7 +5,7 @@
 import HTSeq
 import subprocess
 
-def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path, strandedness):
+def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path, strandedness):
     '''This function runs the htseq_count script from the HTSeq package.
     The script takes a BAM file of aligned RNA sequences (bam_file_path), 
     compares it to a GTF file of annotated genes (gene_annotation_path) 
@@ -64,4 +64,9 @@ def run_HTSeq_count(bam_file_path, gene_annotation_path, result_path, strandedne
         print("Error in execution of htseq-count. Please check that the input paths are valid and that the file types are correct.")
         print(htseq_result.stderr)
     
+    return
+
+
+def run_HTSeq_de_novo(bam_file_path):
+    #Actually maybe i dont need this bc Seq2Fun outputs counts?
     return
