@@ -6,12 +6,27 @@ import rpy2.robjects as robjects
 from rpy2.robjects import pands2ri
 from rpy2.robjects.packages import importr
 
-def run_DESeq2(gene_counts_positive, gene_counts_negative, results_path):
-    '''This function compares the gene counts between the positive and negative expression conditions.
-    The inputs will be taken as lists, to take into account duplicates, triplicates, etc. of the positive and negative samples
-    gene_counts_positive/negative: list of files, where each file contains the gene counts for a sample
-    '''
+def run_DESeq2(gene_counts_matrix, condition_labels, results_path, save_normalized_counts="no", norm_count_results="/"):
+    '''This function compares the gene counts between pairs of expression conditions (for 1 variable). 
+    When you input more than two conditions, DESeq2 performs pairwise comparisons between each possible pair.
 
+    The gene count inputs will be taken as a matrix of file names/paths where each file contains the gene counts for a sample/replicate.
+    The files should be organized as follows:
+        [[replicate 1, replicate 2, replicate 3, ...] (condition 1)
+        [replicate 1, replicate 2, replicate 3, ...]  (condition 2)
+        [replicate 1, replicate 2, replicate 3, ...]] (condition 3)
+    where each row is a different condition
+
+    condition_labels should give a label for each condition. 
+    Otherwise, the default will be to just number them 'condition 1', 'condition 2', etc.
+
+    Normalize counts option:
+        "yes": runs the DESeq2 script AND recalculates the normalized counts and saves them
+        "only": only calculates the normalized counts, does not run the DESeq2 script
+        "no": only runs the DESeq2 script
+    '''
+    
+    ### R setup stuff ###
     # activate automatic conversion between pandas DataFrames and R dataframes
     pandas2ri.activate()
 
@@ -24,33 +39,38 @@ def run_DESeq2(gene_counts_positive, gene_counts_negative, results_path):
     # Import R's "graphics" package
     grDevices = importr('grDevices')
 
-    # Create list of labels for the samples
-        # for each sample in the array "samples", you can look at the corresponding 
-        # array position in the array "conditions" to see if it is a positive or negative sample
-    pos_length = gene_counts_positive.length()
-    neg_length = gene_counts_negative.length()
-    conditions = ["positive"]*pos_length + ["negative"]*neg_length
+    ### Set up the data for DESeq2###
+
+    # load info from the gene count files into pandas DataFrames, store all of these DataFrames into a single list
+    gene_counts_DFs_list = []
+    conditions_tracker = [] # for each sample in gene_counts_DFs_matrix, this list will store the corresponding condition at the same index
+
+    for i in range(len(gene_counts_matrix)): # iterate through each list in the gene_counts_matrix (where each list stores samples for a different condition)
+        list = [pd.read_csv(file, index_col=0) for file in gene_counts_matrix[i]] 
+            # this extracts each gene-count files in the list 'condition' as a pandas dataframe, and stores it in list
+            # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes
+
+        gene_counts_DFs_list += list # append this list
+
+        number_of_samples = len(gene_counts_matrix[i])
+        conditions_tracker += [condition_labels[i]]*number_of_samples
+
+    
+    # Create labels for the samples (sample 1, sample 2, ... )
     samples = []
-    for i in range(1,pos_length+1):
-        samples += ["sample"+str(i)]
-    for i in range(pos_length+1, neg_length+1):
-        samples += ["sample"+str(i)]
+    for i in range(1,len(gene_counts_DFs_list)+1):
+        samples += ["sample "+str(i)]
 
     # Create a metadata Dataframe (will be used by DESeq2)
+        # for each sample in the list "samples", you can look at the corresponding 
+        # list position in the list "conditions_tracker" to see its condition
     metadata_DF = pd.Dataframe({
         'sample': samples,
-        'condition': conditions
+        'condition': conditions_tracker
     })
 
-    # load info from the gene count files as pandas DataFrames
-        # create 2 lists containing Dataframes, where each Dataframe contains the info from 1 gene_count file
-        # index_col=0 tells the function to use the first column (containing gene ID) as the labels (indexes)
-    counts_pos_DFs = [pd.read_csv(file, index_col=0) for file in gene_counts_positive] # gene counts under positive phenotype expression
-    counts_neg_DFs = [pd.read_csv(file, index_col=0) for file in gene_counts_negative] # gene counts under negative phenotype expression
-    
-    # compile DFs into a single list, and then concatenate into a single Dataframe
-    counts_DFs = counts_pos_DFs + counts_neg_DFs
-    counts_DF = pd.concat(counts_DFs, axis=1) # axis = 1 should line up the rows based on the row labels (indexes)
+    # concatenate Dataframes in gene_counts_DFs_list into a single Dataframe
+    counts_DF = pd.concat(gene_counts_DFs_list, axis=1) # axis=1 should tell the function to line up the rows based on the row labels/indexes
     counts_DF.columns = samples     # name columns after the samples
 
     ### R Stuff ###
@@ -64,22 +84,35 @@ def run_DESeq2(gene_counts_positive, gene_counts_negative, results_path):
                                             colData=metadata_R,
                                             design=base.Formula('~ condition'))
     
-    # Run the DeSeq pipeline
-    deseqDS = deseq2.DESeq(deseqDS)
+    if save_normalized_counts=="yes":
+        # Run the DeSeq pipeline
+        deseqDS = deseq2.DESeq(deseqDS)
 
-    # Save the results in a variable
-    res = deseq2.results(deseqDS)
+        # Save the results in a variable
+        res = deseq2.results(deseqDS)
 
-    # Convert the results back to a Pandas Dataframe
-    results_DF = panadas2ri.rpy2rpy_dataframe(res)
+        # Convert the results back to a Pandas Dataframe
+        results_DF = pandas2ri.rpy2rpy_dataframe(res)
 
-    # Write the results to a text file 
-    with open(results_path, 'a') as f:
-        DF_string = df.to_string()
-        f.write(DF_string)
+        # Write the results to a text file 
+        with open(results_path, 'a') as f:
+            DF_string = results_DF.to_string()
+            f.write(DF_string)
 
-    # Return the pandas dataframe too
-    return results_DF
+    if save_normalized_counts=="yes" or save_normalized_counts=="only":
+        # Calculate the normalized counts
+        deseqDS = deseq2.estimateSizeFactors(deseqDS)
+        normalized_counts = counts(deseqDS, normalized=TRUE)
+        # convert to pandas dataframe
+        results_counts = pandas2ri.rpy2rpy_dataframe(normalized_counts)
+        # write to file
+        with open(norm_count_results, 'a') as f:
+            DF_string = results_counts.to_string()
+            f.write(DF_string)
+
+    # Return the pandas dataframes (?)
+    return results_DF, results_counts
+
 
 
 def visualize_DESeq2(results_DF):
