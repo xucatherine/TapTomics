@@ -1,0 +1,23 @@
+
+print("i am running :)")
+from G_abundance_est import run_HTSeq_count
+from I_differential_exp import run_DESeq2
+
+# Get path for the src directory
+from os.path import dirname, abspath
+src_path = dirname(dirname(abspath(__file__)))
+    # __file__ refers to this file
+    # abspath gets the absolute path of the file that we're in
+    # dirname gets the directory that this file is in
+    # dirname*2 gets the parent directory of the directory that the file is in
+print(src_path)
+
+bam_path1 = src_path + "/data/mapped-bam-files/SRR9601278.bam"
+gene_annotation = src_path + "/data/diatom-genome.gtf"
+
+run_HTSeq_count(
+    bam_path1,
+    gene_annotation,
+    result_path=src_path+"/data/SRR9601278_count.csv",
+    strandedness="y"
+)
