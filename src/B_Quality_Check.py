@@ -1,24 +1,6 @@
-# Potential FastQC for-loop - iterates through all folders in Samples and runs fastqc for each SRR folder - for main script
-import os
-Samples_path = 'this needs to have been assigned' # replace with real path
-fastqc_path = 'assign this too'
-for var in os.listdir(Samples_path): # for each variable in the Samples folder
-    if os.path.isdir(os.path.join(Samples_path, var)):
-        var_path = os.path.join(Samples_path, var)
-        for cond in os.listdir(var_path): # for each condition in the var_n folder
-            if os.path.isdir(os.path.join(var_path, cond)):
-                cond_path = os.path.join(var_path, cond)
-                for SRR in os.listdir(cond_path): # for each SRR in the cond_k folder
-                    if os.path.isdir(os.path.join(cond_path, SRR)):
-                        SRR_path = cond_path+"/"+os.path.basename(os.getcwd())
-                        run_FastQC(fastqc_path,SRR_path)
-
-
-
 ## Should we suggest troubleshooting or links to follow for bad results?
 ## main script should ask user if they want to see multiQC report before generating it
                         
-
 # For this script, we need fastqc and multiqc installed
 # First function checks the quality of a FASTA file, so for several it must be implemented in a for-loop
 # Second function gives a visual report summarizing FastQCs for a given condition
@@ -26,7 +8,6 @@ for var in os.listdir(Samples_path): # for each variable in the Samples folder
 
 # Imports
 import subprocess
-
 
 # FastQC Inputs
     # needs path to FASTQ file's SRR folder
@@ -45,7 +26,6 @@ def run_FastQC(fastqc_path,SRR_path):
         print(f"FastQC analysis completed.")
     except subprocess.CalledProcessError as e:
         print(f"Error during FastQC analysis: {e}")
-
 
 # MultiQC Inputs
     # needs path to relevant condition folder
