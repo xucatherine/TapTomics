@@ -1,11 +1,12 @@
 
 # HTSeq
-    # takes BAM file from STAR
+    # takes BAM files from STAR
 
 import HTSeq
 import subprocess
+import os
 
-def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path, strandedness):
+def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path="./counts.csv", strandedness="yes"):
     '''This function runs the htseq_count script from the HTSeq package.
     The script takes a BAM file of aligned RNA sequences (bam_file_path), 
     compares it to a GTF file of annotated genes (gene_annotation_path) 
@@ -17,18 +18,17 @@ def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path, 
         print("Error in run_HTSeq_count: Please input a .BAM file for the first input")
     if not gene_annotation_path.lower().endswith(".gtf"):
         print("Error in run_HTSeq_count: Please input a .GTF for the second input")
-    
 
     # Ask the person to select stranded, unstranded or reverse stranded
-    ### Commented out bc this maybe should be something asked in the main script ###
+    ### this is commented out bc this maybe should be something asked in the main script ###
     ''' 
     check = True # This boolean will be switched off once the person enters a valid input
     while check:
         strandedness = input(["Please input whether you're RNA-seq library is \r", 
-                            "(y) forward/sense stranded \r",
-                            "(n) unstranded or \r",
+                            "(yes) forward/sense stranded \r",
+                            "(no) unstranded or \r",
                             "(reverse) reverse stranded \r", 
-                            "Type y, n, or reverse: "])
+                            "Type yes, no, or reverse: "])
         # Forward stranded = the read represents the RNA sequence directly (complement of the template DNA strand)
         # Reverse stranded = the read represents the complement of the RNA sequence
         # Unstranded = there is no info on whether it is forward or reverse stranded
@@ -51,9 +51,11 @@ def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path, 
         gene_annotation_path # path to the GTF annotation file
     ]
 
+    print("using subprocess to run the htseq count script")
     # use subprocess to run the htseq-count script
     htseq_result = subprocess.run(htseq_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
+    print("htseq-count done running! now dealing with errors or writing the result to output file.")
     # deal with errors
     if htseq_result.returncode == 0:
         # Command was successful, process the output
@@ -64,9 +66,4 @@ def run_HTSeq_reference_based(bam_file_path, gene_annotation_path, result_path, 
         print("Error in execution of htseq-count. Please check that the input paths are valid and that the file types are correct.")
         print(htseq_result.stderr)
     
-    return
-
-
-def run_HTSeq_de_novo(bam_file_path):
-    #Actually maybe i dont need this bc Seq2Fun outputs counts?
     return
