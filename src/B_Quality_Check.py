@@ -2,7 +2,6 @@
 ## main script should ask user if they want to see multiQC report before generating it
 ## specify var/cond for each reported successful/failed FastQC analysis
 
-
           
 # For this script, we need fastqc and multiqc installed
 # First function checks the quality of a FASTA file, so for several it must be implemented in a for-loop
@@ -44,8 +43,8 @@ def run_MultiQC(cond_path):
     result = subprocess.run(cmd, capture_output=True, text=True) # running MultiQC
     # check if MultiQC ran successfully
     if result.returncode == 0:
-        print("MultiQC ran successfully for variable "+var"'s condition "+cond+"! To view results, open this file in your browser:\n")
+        print("MultiQC ran successfully for variable "+var+"'s condition "+cond+"! To view results, open this file in your browser:\n")
         print(result.stdout)
     else:
-        print("MultiQC encountered an error for variable "+var"'s condition "+cond+":")
+        print("MultiQC encountered an error for variable "+var+"'s condition "+cond+":")
         print(result.stderr)
