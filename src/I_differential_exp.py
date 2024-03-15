@@ -7,7 +7,7 @@ import pandas as pd
 #import rpy2.robjects.packages as rpackages
 import os
 
-def setup_genecount_matrix(SRR_folder_path):
+def setup_genecount_matrix(var_folder_path):
     '''The output of this function will be used as the gene_counts_matrix input 
     for the function organize_DESeq2_genecounts'''
     return
