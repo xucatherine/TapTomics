@@ -8,12 +8,67 @@ import pandas as pd
 import os
 
 def setup_genecount_matrix(var_folder_path):
-    '''The output of this function will be used as the gene_counts_matrix input 
+    ''' This function takes as input 
+    The output of this function will be used as the gene_counts_matrix input 
     for the function organize_DESeq2_genecounts'''
-    return
-
-def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels, results_folder="./"):
     
+    gene_counts_matrix = []
+
+    # Expected folder structure:
+    # variable
+    # | condition 1
+    #   |   SRR00000
+    #       |   fasta.fasta
+    #           fasta.fastq
+    #           aligned.bam
+    #           counts.csv
+    #       SRR000001
+    #       |   ...
+    #           
+    #   condition 2
+    #   |   ...
+
+    for condition_folder in os.listdir(var_folder_path):
+        # iterate through each condition for this variable
+        condition_path = os.path.join(var_folder_path, condition_folder)
+        SRR_folders_list = os.listdir(condition_path) # list of the SRR's for the current condition
+        SRR_num = len(SRR_folders_list)
+        SRR_counts_list = [0]*SRR_num # this will store each SRR's count files for the current condition
+        for i in range(SRR_num):
+            # iterate through each SRR folder (and its corresponding count.csv file)
+            counts_path = os.path.join(condition_path, SRR_folders_list[i], "counts.csv") # create full path name for the counts file
+            SRR_counts_list[i] = counts_path # add the count file pathname to the list that stores all count files for the current condition.
+        
+        gene_counts_matrix.append(SRR_counts_list) # append the list of count files for current conditions to the matrix (creates a new 'row' for this condition)
+
+    return gene_counts_matrix
+
+
+def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels=-1, results_folder="./"):
+    '''This function compiles individual gene count files into one table 
+    and creates a metadata table that records the condition associated with each sample/replicate.
+    These two tables are required inputs for DESeq2, a function that compares the gene counts 
+    between pairs of expression conditions (for 1 variable). When you input more than two conditions, 
+    DESeq2 performs pairwise comparisons between each possible pair.
+
+    The gene count inputs will be taken as a matrix of file names/paths where each file contains the gene counts for a sample/replicate.
+    The files should be organized as follows:
+        [[replicate 1, replicate 2, replicate 3, ...] (condition 1)
+        [replicate 1, replicate 2, replicate 3, ...]  (condition 2)
+        [replicate 1, replicate 2, replicate 3, ...]] (condition 3)
+    where each row is a different condition
+
+    condition_labels should give a label for each row of this matrix/condition. 
+    Otherwise, the default will be to just number them 'condition 1', 'condition 2', etc.
+    '''
+    ### If no condition labels were given, set up default condition labels ###
+    if condition_labels == -1:
+        condition_labels = []
+        condition_num = len(gene_counts_matrix)
+        for i in range(1, condition_num+1):
+            label = "condition " + str(i)
+            condition_labels.append(label)
+            
     ### Set up the data for DESeq2 ###
     print("Setting up dataframe for DESeq2!")
     # load info from the gene count files into pandas DataFrames, store all of these DataFrames into a single list
@@ -22,16 +77,16 @@ def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels, results_fol
     conditions_tracker = [] # for each sample in gene_counts_DFs_matrix, this list will store the corresponding condition at the same index
 
     for i in range(len(gene_counts_matrix)): 
-        # iterate through each list in the gene_counts_matrix 
-        # (where each list corresponds to a condition with multiple samples)
+        # iterate through each list/condition in the gene_counts_matrix 
         for file_path in gene_counts_matrix[i]:
             dataframe = pd.read_csv(file_path, index_col=0, sep='\t', header=None)
             # extract gene-count file as a pandas dataframe
             # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes
             gene_counts_DFs_list += [dataframe] # Append dataframe to list
 
-            # remove the file ending and use file name as sample label
-            sample_labels += [os.path.splitext(os.path.basename(file_path))[0].split("_")[0]]
+            # use the directory name as sample label (which is expected to be an SRR number)
+                # MAYBE ADJUST THIS LATER SO THAT ITS MORE GENERIC? OR MOVE THE CODE FROM FIRST FUNCTION INTO THIS FUNCTION
+            sample_labels += [file_path.split('/')[-2]]
 
         number_of_samples = len(gene_counts_matrix[i])
         conditions_tracker += [condition_labels[i]]*number_of_samples
