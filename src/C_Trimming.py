@@ -6,14 +6,14 @@
 import subprocess
 
 # Inputs
-    # needs path to FASTQ file's SRA folder
+    # needs path to FASTQ file's SRR folder
 # Ouputs
-    # outputs new 'trimmed' fastq file in SRA folder
+    # outputs new 'trimmed' fastq file in SRR folder
 
 # Running Cutadapt
-def run_cutadapt(SRA_path):
-    fastq_path = SRA_path+"/FastQC"
-    output_path = SRA_path+"/trimmed"
+def run_cutadapt(SRR_path):
+    fastq_path = SRR_path+"/FastQC"
+    output_path = SRR_path+"/trimmed"
 
     # building list of suspected adaptamer sequences to trim, from FastQC file
     adapter_sequences = []  # list to store adapter sequences

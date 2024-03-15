@@ -1,4 +1,4 @@
-# Potential FastQC for-loop - iterates through all folders in Samples and runs fastqc for each SRA folder - for main script
+# Potential FastQC for-loop - iterates through all folders in Samples and runs fastqc for each SRR folder - for main script
 import os
 Samples_path = 'this needs to have been assigned' # replace with real path
 fastqc_path = 'assign this too'
@@ -8,10 +8,10 @@ for var in os.listdir(Samples_path): # for each variable in the Samples folder
         for cond in os.listdir(var_path): # for each condition in the var_n folder
             if os.path.isdir(os.path.join(var_path, cond)):
                 cond_path = os.path.join(var_path, cond)
-                for SRA in os.listdir(cond_path): # for each SRA in the cond_k folder
-                    if os.path.isdir(os.path.join(cond_path, SRA)):
-                        SRA_path = cond_path+"/"+os.path.basename(os.getcwd())
-                        run_FastQC(fastqc_path,SRA_path)
+                for SRR in os.listdir(cond_path): # for each SRR in the cond_k folder
+                    if os.path.isdir(os.path.join(cond_path, SRR)):
+                        SRR_path = cond_path+"/"+os.path.basename(os.getcwd())
+                        run_FastQC(fastqc_path,SRR_path)
 
 
 
@@ -29,15 +29,15 @@ import subprocess
 
 
 # FastQC Inputs
-    # needs path to FASTQ file's SRA folder
+    # needs path to FASTQ file's SRR folder
     # needs path to FastQC (FastQC must be downloaded by user)
 # Ouputs
-    # outputs 'FastQC' file in appropriate SRA folder
+    # outputs 'FastQC' file in appropriate SRR folder
 
 # Running FastQC Quality Check
-def run_FastQC(fastqc_path,SRA_path):
-    FASTQ_path = SRA_path+"/FASTQ"
-    FastQC_path = SRA_path+"/FastQC" # output directory
+def run_FastQC(fastqc_path,SRR_path):
+    FASTQ_path = SRR_path+"/FASTQ"
+    FastQC_path = SRR_path+"/FastQC" # output directory
     cmd = [fastqc_path, FASTQ_path, '-o', FastQC_path] # making command term
     subprocess.run(cmd, check=True) 
     try:
