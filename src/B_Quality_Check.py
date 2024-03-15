@@ -25,9 +25,9 @@ def run_FastQC(fastqc_path,SRR_path):
     subprocess.run(cmd, check=True) 
     try:
         subprocess.run(cmd, check=True) # running FastQC
-        print(f"FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+" completed.") # specifies using MAIN's functions
+        print(f"FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+"'s "+name(SRR_path)+" completed.") # specifies using MAIN's functions
     except subprocess.CalledProcessError as e:
-        print(f"Error during FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+": {e}")
+        print(f"Error during FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+"'s "+name(SRR_path)+": {e}")
 
 # MultiQC Inputs
     # needs path to relevant condition folder
@@ -37,14 +37,15 @@ def run_FastQC(fastqc_path,SRR_path):
 # Generating MultiQC Quality Check Visuals
 def run_MultiQC(cond_path):
     folders = cond_path.split('/') # splitting the path into its folders to extract cond
+    var = folders[-2].split('_')[1]
     cond = folders[-1].split('_')[1]
 
     cmd = ["multiqc", cond_path] # making command term, MultiQC will scan directory for compatible files
     result = subprocess.run(cmd, capture_output=True, text=True) # running MultiQC
     # check if MultiQC ran successfully
     if result.returncode == 0:
-        print("MultiQC ran successfully for condition "+cond+"! To view results, open this file in your browser:\n")
+        print("MultiQC ran successfully for variable "+var"'s condition "+cond+"! To view results, open this file in your browser:\n")
         print(result.stdout)
     else:
-        print("MultiQC encountered an error for condition "+cond+":")
+        print("MultiQC encountered an error for variable "+var"'s condition "+cond+":")
         print(result.stderr)
