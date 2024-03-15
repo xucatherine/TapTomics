@@ -42,4 +42,4 @@ def run_cutadapt(SRR_path):
     try:
         subprocess.run(command, check=True) 
     except subprocess.CalledProcessError as e:
-        print(f"Error running Cutadapt: {e}")
+        print(f"Error running Cutadapt for variable {var(SRR_path)}, {cond(SRR_path)}'s {name(SRR_path)}: {e}")
