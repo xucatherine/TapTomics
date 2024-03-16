@@ -8,15 +8,15 @@ Within the bioinformatic-pipeline directory, run the following commands in the t
 ```
 pip install virtualenv
 ```
-3. Create a new virtual environment (called my_venv here):
+2. Create a new virtual environment (called my_venv here):
 ```
 virtualenv my_venv
 ```
-5. Activate the virtual environment:
+3. Activate the virtual environment:
 ```
 source my_venv/bin/activate
 ```
-7. Install all of the Python packages needed for this repository:
+4. Install all of the Python packages needed for this repository:
 ```
 pip install -r requirements.txt
 ```
