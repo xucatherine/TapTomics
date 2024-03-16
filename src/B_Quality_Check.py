@@ -9,6 +9,8 @@
 
 # Imports
 import subprocess
+import A_minis
+    # to be able to call var(), cond() and name()
 
 # FastQC Inputs
     # needs path to FASTQ file's SRR folder
@@ -24,9 +26,9 @@ def run_FastQC(fastqc_path,SRR_path):
     subprocess.run(cmd, check=True) 
     try:
         subprocess.run(cmd, check=True) # running FastQC
-        print(f"FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+"'s "+name(SRR_path)+" completed.") # specifies using MAIN's functions
+        print(f"FastQC analysis for variable "+A_minis.var(SRR_path)+", condition "+A_minis.cond(SRR_path)+"'s "+A_minis.name(SRR_path)+" completed.") # specifies using MAIN's functions
     except subprocess.CalledProcessError as e:
-        print(f"Error during FastQC analysis for variable "+var(SRR_path)+", condition "+cond(SRR_path)+"'s "+name(SRR_path)+": {e}")
+        print(f"Error during FastQC analysis for variable "+A_minis.var(SRR_path)+", condition "+A_minis.cond(SRR_path)+"'s "+A_minis.name(SRR_path)+": {e}")
 
 # MultiQC Inputs
     # needs path to relevant condition folder

@@ -4,6 +4,8 @@
 
 # imports
 import subprocess
+import A_minis
+    # to be able to call var(), cond() and name()
 
 # Inputs
     # needs path to FASTQ file's SRR folder
@@ -42,4 +44,4 @@ def run_cutadapt(SRR_path):
     try:
         subprocess.run(command, check=True) 
     except subprocess.CalledProcessError as e:
-        print(f"Error running Cutadapt for variable {var(SRR_path)}, {cond(SRR_path)}'s {name(SRR_path)}: {e}")
+        print(f"Error running Cutadapt for variable {A_minis.var(SRR_path)}, {A_minis.cond(SRR_path)}'s {A_minis.name(SRR_path)}: {e}")

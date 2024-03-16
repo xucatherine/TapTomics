@@ -119,22 +119,8 @@ for var in os.listdir(Samples_path): # for each variable in the Samples folder
             SRR_path = os.path.join(cond_path, SRR)
             SRR_paths.append(SRR_path)
 
-# Quick functions to access the var/cond under which the given SRR is stored
-def var(SRR_path):
-    folders = SRR_path.split('/') # splitting the path into its folders
-    var_number = folders[-3].split('_')[1] # counting backwards from known number of '/'
-    return var_number
-def cond(SRR_path):
-    folders = SRR_path.split('/') # splitting the path into its folders
-    cond_number = folders[-2].split('_')[1] # counting backwards from known number of '/'
-    return cond_number
-def name(SRR_path):
-    folders = SRR_path.split('/') # splitting the path into its folders
-    name = folders[-1].split('_')[1] # counting backwards from known number of '/'
-    return name
-
 # Running Quality Checks on SRR data
-import B_Quality_Check.py
+import B_Quality_Check
 fastqc_path = 'resolve' # path to previously downloaded FastQC, within user's computer
     ## save this path earlier when dowloading, or have user manually input it here
 for SRR in SRR_paths:
@@ -151,7 +137,7 @@ if query == 'y':
             B_Quality_Check.run_MultiQC(cond_path)
 
 # Trimming SRR data using Quality Check results
-import C_Trimming.py
+import C_Trimming
 for SRR in SRR_paths:
     C_Trimming.run_cutadapt(SRR)
 
