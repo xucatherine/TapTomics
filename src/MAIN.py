@@ -12,11 +12,11 @@ folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
             folder: SRR (subfiles can be added later)
-                file: FASTA
-                file: FASTQ
-                file: FastQC
-                file: trimmed
-                file: BAM
+                file: FASTA        (suggestion: raw.fasta)
+                file: FASTQ        (suggestion: raw.fastq)
+                file: FastQC        
+                file: trimmed    (suggestion: trimmed.fastq)
+                file: BAM        (suggestion: aligned.bam)
                 [...]
             [more SRR folders]
         [more cond folders]
