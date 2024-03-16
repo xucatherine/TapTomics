@@ -13,6 +13,7 @@ pip install virtualenv
 virtualenv my_venv
 ```
 OR ```python -m virtualenv my_venv``` if the first one does not work
+
 3. Activate the virtual environment:
 ```
 source my_venv/bin/activate
