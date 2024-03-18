@@ -2,10 +2,11 @@
 # Take gene counts from an abundance estimator, like HTSeq or feature count, perform differential expression analysis
 
 import pandas as pd
+import os
+import subprocess
 #import rpy2.robjects as robjects
 #from rpy2.robjects import pandas2ri
 #import rpy2.robjects.packages as rpackages
-import os
 
 def setup_genecount_matrix(var_folder_path):
     ''' This function takes as input 
@@ -28,10 +29,10 @@ def setup_genecount_matrix(var_folder_path):
     #   condition 2
     #   |   ...
 
-    for condition_folder in os.listdir(var_folder_path):
+    for condition_folder in sorted(os.listdir(var_folder_path)):
         # iterate through each condition for this variable
         condition_path = os.path.join(var_folder_path, condition_folder)
-        SRR_folders_list = os.listdir(condition_path) # list of the SRR's for the current condition
+        SRR_folders_list = sorted(os.listdir(condition_path)) # list of the SRR's for the current condition
         SRR_num = len(SRR_folders_list)
         SRR_counts_list = [0]*SRR_num # this will store each SRR's count files for the current condition
         for i in range(SRR_num):
@@ -42,7 +43,6 @@ def setup_genecount_matrix(var_folder_path):
         gene_counts_matrix.append(SRR_counts_list) # append the list of count files for current conditions to the matrix (creates a new 'row' for this condition)
 
     return gene_counts_matrix
-
 
 def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels=-1, results_folder="./"):
     '''This function compiles individual gene count files into one table 
@@ -116,6 +116,34 @@ def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels=-1, results_
     metadata_DF.to_csv(gene_counts_metadata)
 
     return
+
+def run_DESeq2_R(gene_counts_path, metadata_path, result_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
+    
+    ## I am unable to install rpy2 on my device. 
+        # As a work-around, I wrote an R script for DESeq2, and this python function will write an 
+        # extra line in this R script that calls my DESeq2 function with the appropriate inputs.
+        # Once the R script is done running, the last line will be deleted
+    print("function is running")
+    my_script = open("R_scripts/run_deseq2.R", "a")
+    my_script.write('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_folder 
+                    + '",normalize=' + normalize + ',transform=' + transform + ',plots=' + plots + ')')
+    my_script.close() #close the file to free up memory
+  
+    # Run the R script
+    subprocess.run(['Rscript', 'R_scripts/run_deseq2.R'])
+    
+    # Delete the last line of/function call from the R script
+    my_script1 = open("R_scripts/run_deseq2.R", "r")
+    lines = my_script1.readlines() # saves all of the lines in the script
+    my_script1.close()
+    my_script1 = open("R_scripts/run_deseq2.R", "w") 
+    my_script1.write(''.join(lines[:-1])) # rewrite all of the lines except the last line
+    my_script1.close()
+    
+
+    return
+
+#### FUNCTIONS THAT ARE NOT FULLY IMPLEMENTED ###
 
 def run_DESeq2(gene_counts_matrix, condition_labels, results_path="/", save_normalized_counts="no", norm_count_results="/"):
     '''This function compares the gene counts between pairs of expression conditions (for 1 variable). 
@@ -246,14 +274,6 @@ def run_DESeq2(gene_counts_matrix, condition_labels, results_path="/", save_norm
 
     # Return the pandas dataframes (?)
     return results_DF, results_counts
-
-
-
-def visualize_DESeq2(results_DF):
-    '''This will be a function that takes the results from DESeq2 and generates plots 
-    such as MA plots, volcano plots, and heatmaps'''
-    
-    return
 
 
 ## edgeR ##
