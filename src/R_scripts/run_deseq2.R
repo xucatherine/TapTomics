@@ -1,5 +1,5 @@
 
-run_DESeq2 <- function(gene_counts_path, metadata_path, result_folder, normalize=FALSE, transform=FALSE, plots=FALSE) {
+run_DESeq2 <- function(gene_counts_path, metadata_path, result_path, counts_folder, normalize=FALSE, transform=FALSE, plots=FALSE) {
     print("R script is running")
     ### Install packages and load libraries ###
     
@@ -36,22 +36,23 @@ run_DESeq2 <- function(gene_counts_path, metadata_path, result_folder, normalize
     
     summary(res) # prints summary of DESeq2 results
 
+    # Write the results to a csv file
     tidy_res = results(dds, tidy=TRUE) #create a 'tidy' form of results for writing to csv
     tidy_res <- tidy_res[order(tidy_res$padj),] # sort the results by adjusted p-value (lower p-value = )
-    write.csv(tidy_res, paste(result_folder, "/results.csv",sep=""), row.names=FALSE) # write this table to a csv file
+    write.csv(tidy_res, result_path, row.names=FALSE) # write this table to a csv file
 
     ### Normalize and Transform for Correlation analysis (optional) ###
     if(normalize){
         norm_counts = counts(dds, normalized=TRUE)
             # This DESeq2 function uses the counts and size factors from the DESeqDataSet object to normalize the counts
-        write.csv(norm_counts, paste(result_folder, "/norm_counts.csv",sep=""))
+        write.csv(norm_counts, paste(counts_folder, "/norm_counts.csv",sep=""))
     }
     if(transform){
         # Variance Stabilizing Transformation
         vst_data <- varianceStabilizingTransformation(dds, blind=FALSE)
         # Extract the matrix of transformed values
         vst_matrix <- assay(vst_data)
-        write.csv(vst_matrix, paste(result_folder, "/vst_counts.csv",sep=""))
+        write.csv(vst_matrix, paste(counts_folder, "/vst_counts.csv",sep=""))
     }
 
     ### Make plots of the data ###
@@ -67,7 +68,8 @@ run_DESeq2 <- function(gene_counts_path, metadata_path, result_folder, normalize
         with(subset(res, padj<.01 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
 
         ## PCA plot ##
-        plotPCA(vsdata, intgroup="condition")
+        vst_data <- vst(dds, blind=FALSE)
+        plotPCA(vstdata, intgroup = "condition")
     }
 
 }

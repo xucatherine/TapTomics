@@ -31,7 +31,7 @@ folder: Results
 '''
 
 # Imports
-from git import Repo
+# from git import Repo
     # using gitpython we can access GitHub to make new folders for user's data
 from Bio import Entrez
     # 'Entrez' allows us to send requests to NCBI databases (from BioPython)
@@ -42,8 +42,14 @@ import subprocess
 
 def samples_setup():
     # Setting up path to save folders in & user email to access NCBI
-    path = str(input("Please enter a path link for where you would like this pipeline's running data stored: "))
-        ## We should set a default to use bioinformatic-pipeline
+    # this loops until the user inputs a valid path
+    while True:
+        path = str(input("Please enter a path link for where you would like this pipeline's running data stored: "))
+        ## We should maybe set a default to use bioinformatic-pipeline
+        if not os.path.isdir(path):
+            print("Error: invalid directory path. Please enter a valid path to a directory/folder.")
+        else:
+            break
     #repo = Repo.clone_from("https://github.com/xucatherine/bioinformatic-pipeline/src.git", path)
     Entrez.email = str(input("NCBI requires an email address to track usage of their services.\nPlease input your email address: "))
         # NCBI Entrez requires an email address (according to BioBuddy)
@@ -61,7 +67,7 @@ def samples_setup():
     os.makedirs(Results_path, exist_ok=True)
 
     # Entering data into Samples folder - starting with number of variables to study
-    print("Using differential analysis to decode metabolic pathways involves identifying experimental variables under which expression of the phenotype of interest differs.")
+    print("\nUsing differential analysis to decode metabolic pathways involves identifying experimental variables under which expression of the phenotype of interest differs.")
     print("Through changing the variable's intensity, we create different experimental conditions under which transcriptomes can be collected and compared against each other.")
     print("Ex: In studying yeast respiration, temperature is a variable. Low, medium and high heat would correspond to 3 conditions, between which cellular respiration varies.")
     print("\nHow many variables are you considering for your pathway? (minimum 1)")
@@ -97,7 +103,7 @@ def samples_setup():
                     os.makedirs(SRR_path, exist_ok=True)
                     
                     # retrieve FASTA file (script by ChatGPT)
-                    handle = Entrez.efetch(db="nucleotide", id=SRR, rettype="fasta", retmode="text")
+                    handle = Entrez.efetch(db="nucleotide", id=SRR, rettype="fasta", retmode="text") ### I GET AN ERROR HERE - CATHERINE ###
                     fasta_data = handle.read()
                     handle.close()
                     with open(SRR_path+"/FASTA", "w") as file: # adding FASTA file to folder
@@ -142,6 +148,7 @@ if query == 'y':
     for var in os.listdir(Samples_path): # for each variable in the Samples folder
         var_path = os.path.join(Samples_path, var)
         for cond in os.listdir(var_path): # for each condition in the var_n folder
+            cond_path = os.path.join(var_path, cond)
             B_Quality_Check.run_MultiQC(cond_path)
 
 # Trimming SRR data using Quality Check results
@@ -151,4 +158,70 @@ for SRR in SRR_paths:
 
 # Next...
     
+# Reference-based assembly/mapping
     
+# Abundance Estimation?
+    
+# De novo - Seq2Fun
+
+# Differential Expression Analysis
+from I_differential_exp import setup_genecount_matrix, organize_DESeq2_genecounts, run_DESeq2_R
+
+print("\nDifferential Expression Analysis will now be performed using DESeq2.")
+print("For one variable, DESEq2 will compare pairs of conditions, using the gene counts from all of the conditions")
+print("to calculate the 'degree' of differential expression for each gene.")
+print("This degree of differential expression is represented by statistical numbers like log2-fold change and p-value.")
+print("For more information on how to interpret the DESeq2 results:")
+print("https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/05b_wald_test_results.html#p-values")
+print("For more information on how DESeq2 works:")
+print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")
+    
+# Folders to save information for DESeq2
+    # References
+        # compiled_counts
+            # var_1
+                # comp_counts.csv
+                # metadata.csv
+                # norm_counts.csv
+                # vst_counts.csv
+            # var_2
+                # ...
+    # Results
+        # DESeq2
+            # DESeq2_results_var_1.csv
+            # DESeq2_results_var_2.csv
+
+# make DESeq2 results folder
+deseq2_results_folder = os.path.join(Results_path, "DESeq2")
+if not os.path.exists(deseq2_results_folder):
+    os.mkdir(deseq2_results_folder)
+
+# make compiled_counts folder
+compiled_counts_path = os.path.join(References_path, "compiled_counts")
+if not os.path.exists(compiled_counts_path): # make the folder if it doesn't exist already
+    os.mkdir(compiled_counts_path)
+    
+# make the sub folders, one for each variable
+var_list = os.listdir(Samples_path) # use Samples folder to know how many variables/names of the variable folders
+for var_dir in var_list:
+    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+    if not os.path.exists(compiled_counts_var_path): # make the compiled_counts folder if it doesn't exist already
+        os.mkdir(compiled_counts_var_path) 
+    
+# Setup data for DESeq2. 
+for var_dir in var_list:
+    samples_var_path = os.path.join(Samples_path, var_dir)
+    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+    organize_DESeq2_genecounts(samples_var_path, results_folder=compiled_counts_var_path)
+        # Compiles all of the counts from Samples/var_n into 1 table (comp_counts.csv)
+        # For each sample/SRR in the table, records the corresponding condition in metadata.csv
+
+# Run DESeq2 for each var
+for var_dir in var_list:
+    comp_counts_csv_path = os.path.join(compiled_counts_path, var_dir, "comp_counts.csv")
+    metadata_path = os.path.join(compiled_counts_path, var_dir, "metadata.csv")
+    result_file = "DESeq2_results_" + var_dir
+    deseq2_result_file_path = os.path.join(deseq2_results_folder, result_file)
+    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+
+    run_DESeq2_R(comp_counts_csv_path, metadata_path, deseq2_result_file_path, compiled_counts_var_path, "TRUE", "TRUE")

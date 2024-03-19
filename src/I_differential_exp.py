@@ -9,9 +9,14 @@ import subprocess
 #import rpy2.robjects.packages as rpackages
 
 def setup_genecount_matrix(var_folder_path):
-    ''' This function takes as input 
-    The output of this function will be used as the gene_counts_matrix input 
-    for the function organize_DESeq2_genecounts'''
+    ''' This function takes as input a variable folder under Samples. 
+    It iterates through all of the conditions and samples under each condition to create a matrix of gene_count file paths
+    The files will be organized as follows:
+        [[replicate 1, replicate 2, replicate 3, ...] (condition 1)
+        [replicate 1, replicate 2, replicate 3, ...]  (condition 2)
+        [replicate 1, replicate 2, replicate 3, ...]] (condition 3)
+    where each row has samples for a different condition
+    '''
     
     gene_counts_matrix = []
 
@@ -44,23 +49,21 @@ def setup_genecount_matrix(var_folder_path):
 
     return gene_counts_matrix
 
-def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels=-1, results_folder="./"):
+def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./"):
     '''This function compiles individual gene count files into one table 
     and creates a metadata table that records the condition associated with each sample/replicate.
     These two tables are required inputs for DESeq2, a function that compares the gene counts 
     between pairs of expression conditions (for 1 variable). When you input more than two conditions, 
     DESeq2 performs pairwise comparisons between each possible pair.
 
-    The gene count inputs will be taken as a matrix of file names/paths where each file contains the gene counts for a sample/replicate.
-    The files should be organized as follows:
-        [[replicate 1, replicate 2, replicate 3, ...] (condition 1)
-        [replicate 1, replicate 2, replicate 3, ...]  (condition 2)
-        [replicate 1, replicate 2, replicate 3, ...]] (condition 3)
-    where each row is a different condition
+    var_folder_path is the path to a variable folder under Samples. 
+    All of the conditions and corresponding samples under this variable will be used in the analysis
 
     condition_labels should give a label for each row of this matrix/condition. 
     Otherwise, the default will be to just number them 'condition 1', 'condition 2', etc.
     '''
+    gene_counts_matrix = setup_genecount_matrix(var_folder_path)
+
     ### If no condition labels were given, set up default condition labels ###
     if condition_labels == -1:
         condition_labels = []
@@ -110,14 +113,14 @@ def organize_DESeq2_genecounts(gene_counts_matrix, condition_labels=-1, results_
     print(counts_DF)
 
     # Write the new gene-counts and metada dataframes to csv files
-    gene_counts_path = results_folder + "compiled_counts_for_deseq.csv"
-    gene_counts_metadata = results_folder + "metadata_for_deseq.csv"
+    gene_counts_path = results_folder + "comp_counts.csv"
+    gene_counts_metadata = results_folder + "metadata.csv"
     counts_DF.to_csv(gene_counts_path)
     metadata_DF.to_csv(gene_counts_metadata)
 
     return
 
-def run_DESeq2_R(gene_counts_path, metadata_path, result_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
+def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
     
     ## I am unable to install rpy2 on my device. 
         # As a work-around, I wrote an R script for DESeq2, and this python function will write an 
@@ -125,8 +128,8 @@ def run_DESeq2_R(gene_counts_path, metadata_path, result_folder, normalize="FALS
         # Once the R script is done running, the last line will be deleted
     print("function is running")
     my_script = open("R_scripts/run_deseq2.R", "a")
-    my_script.write('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_folder 
-                    + '",normalize=' + normalize + ',transform=' + transform + ',plots=' + plots + ')')
+    my_script.write('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_path + '","' + counts_folder 
+                     + '",normalize=' + normalize + ',transform=' + transform + ',plots=' + plots + ')')
     my_script.close() #close the file to free up memory
   
     # Run the R script
