@@ -8,47 +8,6 @@ import subprocess
 #from rpy2.robjects import pandas2ri
 #import rpy2.robjects.packages as rpackages
 
-def setup_genecount_matrix(var_folder_path):
-    ''' This function takes as input a variable folder under Samples. 
-    It iterates through all of the conditions and samples under each condition to create a matrix of gene_count file paths
-    The files will be organized as follows:
-        [[replicate 1, replicate 2, replicate 3, ...] (condition 1)
-        [replicate 1, replicate 2, replicate 3, ...]  (condition 2)
-        [replicate 1, replicate 2, replicate 3, ...]] (condition 3)
-    where each row has samples for a different condition
-    '''
-    
-    gene_counts_matrix = []
-
-    # Expected folder structure:
-    # variable
-    # | condition 1
-    #   |   SRR00000
-    #       |   fasta.fasta
-    #           fasta.fastq
-    #           aligned.bam
-    #           counts.csv
-    #       SRR000001
-    #       |   ...
-    #           
-    #   condition 2
-    #   |   ...
-
-    for condition_folder in sorted(os.listdir(var_folder_path)):
-        # iterate through each condition for this variable
-        condition_path = os.path.join(var_folder_path, condition_folder)
-        SRR_folders_list = sorted(os.listdir(condition_path)) # list of the SRR's for the current condition
-        SRR_num = len(SRR_folders_list)
-        SRR_counts_list = [0]*SRR_num # this will store each SRR's count files for the current condition
-        for i in range(SRR_num):
-            # iterate through each SRR folder (and its corresponding count.csv file)
-            counts_path = os.path.join(condition_path, SRR_folders_list[i], "counts.csv") # create full path name for the counts file
-            SRR_counts_list[i] = counts_path # add the count file pathname to the list that stores all count files for the current condition.
-        
-        gene_counts_matrix.append(SRR_counts_list) # append the list of count files for current conditions to the matrix (creates a new 'row' for this condition)
-
-    return gene_counts_matrix
-
 def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./"):
     '''This function compiles individual gene count files into one table 
     and creates a metadata table that records the condition associated with each sample/replicate.
@@ -58,16 +17,27 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
 
     var_folder_path is the path to a variable folder under Samples. 
     All of the conditions and corresponding samples under this variable will be used in the analysis
-
-    condition_labels should give a label for each row of this matrix/condition. 
-    Otherwise, the default will be to just number them 'condition 1', 'condition 2', etc.
+    Expected folder structure:
+      variable
+      | condition 1
+        |   SRR00000
+            |   fasta.fasta
+                fasta.fastq
+                aligned.bam
+                counts.csv
+            SRR000001
+            |   ...
+                
+        condition 2
+        |   ...
+    
+    condition_labels should give a list of the names for each condition, in the order that they appear in the folder system. 
+    If no input, the default will be to just call them 'condition 1', 'condition 2', etc.
     '''
-    gene_counts_matrix = setup_genecount_matrix(var_folder_path)
-
     ### If no condition labels were given, set up default condition labels ###
     if condition_labels == -1:
         condition_labels = []
-        condition_num = len(gene_counts_matrix)
+        condition_num = len(os.listdir(var_folder_path))
         for i in range(1, condition_num+1):
             label = "condition " + str(i)
             condition_labels.append(label)
@@ -79,22 +49,25 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     sample_labels = []
     conditions_tracker = [] # for each sample in gene_counts_DFs_matrix, this list will store the corresponding condition at the same index
 
-    for i in range(len(gene_counts_matrix)): 
-        # iterate through each list/condition in the gene_counts_matrix 
-        for file_path in gene_counts_matrix[i]:
-            dataframe = pd.read_csv(file_path, index_col=0, sep='\t', header=None)
-            # extract gene-count file as a pandas dataframe
-            # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes
+    condition_folders = sorted(os.listdir(var_folder_path))
+    for i in range(condition_folders):
+        # iterate through each condition
+        condition_path = os.path.join(var_folder_path, condition_folders[i])
+        for SRR in sorted(os.listdir(condition_path)):
+            # iterate through each SRR
+            counts_path = os.path.join(condition_path, SRR, "counts.csv")
+            dataframe = pd.read_csv(counts_path, index_col=0, sep='\t', header=None)
+                # extract the gene-count file as a pandas dataframe
+                # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes
             gene_counts_DFs_list += [dataframe] # Append dataframe to list
 
-            # use the directory name as sample label (which is expected to be an SRR number)
-                # MAYBE ADJUST THIS LATER SO THAT ITS MORE GENERIC? OR MOVE THE CODE FROM FIRST FUNCTION INTO THIS FUNCTION
-            sample_labels += [file_path.split('/')[-2]]
+            # use the SRR directory name as sample label
+            sample_labels += [SRR]
 
-        number_of_samples = len(gene_counts_matrix[i])
+        # condition labels for each sample that was just added
+        number_of_samples = len(os.listdir(condition_path))
         conditions_tracker += [condition_labels[i]]*number_of_samples
 
-    print(gene_counts_DFs_list)
 
     # Create a metadata Dataframe (will be used by DESeq2)
         # for each sample in the list "samples", you can look at the corresponding 
@@ -119,6 +92,7 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     metadata_DF.to_csv(gene_counts_metadata)
 
     return
+
 
 def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
     
