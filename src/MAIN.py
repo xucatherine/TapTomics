@@ -162,7 +162,9 @@ def samples_setup():
 
 samples_setup()
 
-# Running Quality Checks on SRR data
+######################################
+# Running Quality Checks on SRR data #
+######################################
 import B_Quality_Check
 fastqc_path = 'resolve' # path to previously downloaded FastQC, within user's computer
     ## save this path earlier when dowloading, or have user manually input it here
@@ -186,14 +188,24 @@ for SRR in SRR_paths:
     C_Trimming.run_cutadapt(SRR)
 
 # Next...
-    
-# Reference-based assembly/mapping
-    
-# Abundance Estimation?
-    
-# De novo - Seq2Fun
+## Ask if there is a genome somewhere, jump to Reference-based assembly or De novo
 
-# Differential Expression Analysis
+#################################### 
+# Reference-based assembly/mapping #
+####################################
+
+
+
+#####################
+# De novo - Seq2Fun #
+#####################
+
+
+
+####################################
+# Differential Expression Analysis #
+####################################
+
 from I_differential_exp import setup_genecount_matrix, organize_DESeq2_genecounts, run_DESeq2_R
 
 print("\nDifferential Expression Analysis will now be performed using DESeq2.")
@@ -251,3 +263,9 @@ for var_dir in var_list:
     compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
 
     run_DESeq2_R(comp_counts_csv_path, metadata_path, deseq2_result_file_path, compiled_counts_var_path, "TRUE", "TRUE")
+
+
+##########################
+# Co-Expression Analysis #
+##########################
+    
