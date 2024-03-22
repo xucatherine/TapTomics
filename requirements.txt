@@ -1,4 +1,6 @@
 biopython==1.83
+gitdb==4.0.11
+GitPython==3.1.42
 HTSeq==2.0.5
 numpy==1.26.4
 pandas==2.2.1
@@ -6,4 +8,5 @@ pysam==0.22.0
 python-dateutil==2.9.0.post0
 pytz==2024.1
 six==1.16.0
+smmap==5.0.1
 tzdata==2024.1

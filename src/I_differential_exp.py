@@ -89,7 +89,7 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     gene_counts_path = results_folder + "comp_counts.csv"
     gene_counts_metadata = results_folder + "metadata.csv"
     counts_DF.to_csv(gene_counts_path)
-    metadata_DF.to_csv(gene_counts_metadata)
+    metadata_DF.to_csv(gene_counts_metadata, index=False)
 
     return
 
@@ -97,9 +97,10 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
 def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
     
     ## I am unable to install rpy2 on my device. 
-        # As a work-around, I wrote an R script for DESeq2, and this python function will write an 
-        # extra line in this R script that calls my DESeq2 function with the appropriate inputs.
-        # Once the R script is done running, the last line will be deleted
+        # As a work-around, I wrote a function in R that runs DESeq2. 
+        # This python run_DESeq2_R() function will write an extra line in my R script 
+        # to call my DESeq2 function using the inputs from run_DESeq2_R.
+        # Once the R script is done running, the function call line/last line will be deleted.
     print("function is running")
     my_script = open("R_scripts/run_deseq2.R", "a")
     my_script.write('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_path + '","' + counts_folder 
@@ -116,7 +117,6 @@ def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, no
     my_script1 = open("R_scripts/run_deseq2.R", "w") 
     my_script1.write(''.join(lines[:-1])) # rewrite all of the lines except the last line
     my_script1.close()
-    
 
     return
 
