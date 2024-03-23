@@ -35,6 +35,10 @@ folder: References
     [...]
 
 folder: Results
+    DESeq2
+        DESeq2_results_var_1.csv
+        DESeq2_results_var_2.csv
+        [results for each var_x]
     [...]
 '''
 
@@ -50,7 +54,9 @@ import subprocess
 
 from A_minis import Bioinf_Profile
 
-print("~~~ Welcome to our bioinformatic pipeline! ~~~\n")
+print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("\t~~~ Welcome to our bioinformatic pipeline! ~~~")
+print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
 Steps = {
     "A": "Sample Setup and Download",
@@ -63,12 +69,21 @@ Steps = {
     "H": "Coexpression Analysis"
 }
 
-def paths_setup():
-    # Prep Bioinf_profile object and path variables
-    profile = Bioinf_Profile() # stores paths to different tools
-    global SRA_toolkit_path, Samples_path, References_path, Results_path
+# Initialize Bioinf_profile object 
+profile = Bioinf_Profile()
+# Path variables that are assigned values within the setup functions
+# and that will be used in multiple places in MAIN.py:
+# These are listed here more to help remember which variables are meant to be global
+SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths = None, None, None, None, None
+VAR_names, COND_names = None, None
+    # VAR_names = [var_1 name, var_2 name, ...]
+    # COND_names = [[cond_1 name, cond_2 name, ...],  (var_1)
+    #               [cond_1 name, cond_2 name, ...],  (var_2)
+    #               ...]
 
+def paths_setup():
     # Check if the pipeline has already been run & information has been saved
+    global SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths
     if os.path.isfile(".bioinf-profile"):
         profile.read_profile()
 
@@ -76,7 +91,7 @@ def paths_setup():
         print(f"and reached Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}")
         print("Would you like to...")
         print(f"\t (1) continue the pipeline starting from Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}?")
-        print("\t or (2) start over the pipeline?")
+        print("\t (2) or rerun the pipeline from the start?")
         m = input("Please enter 1 or 2: ")
         if m == '1': 
             start_over = False
@@ -126,14 +141,12 @@ def paths_setup():
         os.makedirs(Results_path, exist_ok=True)
 
         # update the variables in .bioinf-profile
-        profile.dict["PATH"] = path
-        profile.dict["SRA_TOOLKIT_PATH"] = SRA_toolkit_path
-        profile.dict["STEP"] = "A"
+        profile.dict["PATH"] = os.path.abspath(path)
+        profile.dict["SRA_TOOLKIT_PATH"] = os.path.abspath(SRA_toolkit_path)
         profile.update_profile()
     
     ## Always Runs ##
     # Creating list of SRRs for easy processing - iterates through all folders in Samples
-    global SRR_paths
     SRR_paths = []
     for var in os.listdir(Samples_path): # for each variable in the Samples folder
         var_path = os.path.join(Samples_path, var)
@@ -142,6 +155,7 @@ def paths_setup():
             for SRR in os.listdir(cond_path): # for each SRR in the cond_k folder
                 SRR_path = os.path.join(cond_path, SRR)
                 SRR_paths.append(SRR_path)
+
 
 def samples_setup():
     fasterq_dump_path = os.path.join(SRA_toolkit_path, "bin", "fasterq-dump") # path to the tool that will fetch fastQ files
@@ -193,68 +207,92 @@ def samples_setup():
             ## ask user to name condition and store name in a dictionary?
 
         # Getting SRRs and downloading their FASTQ files, for each variable
+        SRRs_matrix = []
         for cond in sorted(os.listdir(var_path)): # for condition folder in parent folder var_n
             print(f"\nList the SRR numbers belonging to variable {i+1}'s condition {cond.split('_')[-1]}, separated by spaces.")
             print("ex: SRR12345678 SRR91011109 SRR87654321")
             SRRs = input("SRR numbers: ") #[user inputs SRRs]
             SRRs_list = SRRs.split() # making list of SRRs
+            SRRs_matrix.append(SRRs_list)
             
-            # Starting the downloads
-            print("We will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
-            if os.path.isdir(os.path.join(var_path, cond)):
-                cond_path = os.path.join(var_path, cond)
-                for SRR in SRRs_list: # loop through each SRR
-                    SRR_path = os.path.join(cond_path, SRR) # new folder named as SRR number
-                    os.makedirs(SRR_path, exist_ok=True)
-                    print(f"Downloading {SRR}...")
-                    # retrieve FASTQ file using SRR Toolkit
-                    try:
-                        subprocess.run([fasterq_dump_path, SRR, "--outdir", SRR_path, "--skip-technical", "--split-3"])
-                            # this will create two, or three files:
-                                # SRR000000_1.fastq ;  side 1 of paired reads
-                                # SRR000000_2.fastq ;  side 2 of paired reads
-                                # SRR000000_3.fastq ;  any unpaired/unmatched reads
-                        # renaming the files to generic name
-                        for file in os.listdir(SRR_path):
-                            if file.startswith(SRR):
-                                if file.endswith("_1.fastq"):
-                                    new_name = "rawF.fastq"
-                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
-                                elif file.endswith("_2.fastq"):
-                                    new_name = "rawR.fastq"
-                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
-                                else:
-                                    os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
-                    except subprocess.CalledProcessError as e:
-                        print(f"An error occurred while downloading {SRR}: {e}")  
+        print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
 
+        # downloading the FASTQ files
+        cond_list = sorted(os.listdir(var_path))
+        for i in range(len(cond_list)): # for condition folder in parent folder var_n
+            # Starting the downloads
+            print(f"\nDownloading SRRs for condition {i+1}")
+            cond_path = os.path.join(var_path, cond_list[i])
+            SRRs_list = SRRs_matrix[i] # SRRs inputted by the user for the current condition
+            for SRR in SRRs_list: # loop through each SRR
+                SRR_path = os.path.join(cond_path, SRR) # new folder named as SRR number
+                os.makedirs(SRR_path, exist_ok=True)
+
+                # Check if the fasta files have already been downloaded in this folder
+                if os.path.isfile(os.path.join(SRR_path, "rawF.fastq")) and os.path.isfile(os.path.join(SRR_path,"rawR.fastq")):
+                    print(f"It looks like the fastq files for {SRR} have already been downloaded!")
+                    print("Skipping to the next SRR...")
+                    continue
+                
+                print(f"Downloading {SRR}...")
+                # retrieve FASTQ file using SRR Toolkit
+                try:
+                    subprocess.run([fasterq_dump_path, SRR, "--outdir", SRR_path, "--skip-technical", "--split-3"])
+                        # this will create two, or three files:
+                            # SRR000000_1.fastq ;  side 1 of paired reads
+                            # SRR000000_2.fastq ;  side 2 of paired reads
+                            # SRR000000_x.fastq ;  any unpaired/unmatched reads
+                    # renaming the files to generic name
+                    for file in os.listdir(SRR_path):
+                        if file.startswith(SRR):
+                            if file.endswith("_1.fastq"):
+                                new_name = "rawF.fastq"
+                                os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                            elif file.endswith("_2.fastq"):
+                                new_name = "rawR.fastq"
+                                os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                            else:
+                                os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
+                except subprocess.CalledProcessError as e:
+                    print(f"An error occurred while downloading {SRR}: {e}") 
+            
     print("Thank you! Your transcriptomes are ready for processing.")
 
 paths_setup()
 
-## Use a switch case or if statements to jump ahead in the code
+## Use if statements to jump ahead in the code
+profile.dict["STEP"] = "A"
 
-samples_setup()
-            
+if profile.dict["STEP"] == "A": 
+    print("\n\t################################")
+    print("\t# A: Sample Setup and Download #")
+    print("\t################################")
+    samples_setup()
+    profile.dict["STEP"] = "B"
+
 ######################################
 # Running Quality Checks on SRR data #
 ######################################
-import B_Quality_Check
-fastqc_path = 'resolve' # path to previously downloaded FastQC, within user's computer
-    ## save this path earlier when dowloading, or have user manually input it here
-for SRR in SRR_paths:
-    B_Quality_Check.run_FastQC(fastqc_path,SRR)
 
-# Optional: Running MultiQC on FastQC data to create visual for user, per condition
-print("Would you like to run a visualizer for the quality checks done on each of your conditions?")
-print("This will output links which you can open in a browser.")
-query = input("Run MultiQC? y/n : ")
-if query == 'y':
-    for var in os.listdir(Samples_path): # for each variable in the Samples folder
-        var_path = os.path.join(Samples_path, var)
-        for cond in os.listdir(var_path): # for each condition in the var_n folder
-            cond_path = os.path.join(var_path, cond)
-            B_Quality_Check.run_MultiQC(cond_path)
+if profile.dict["STEP"] == "B":
+    import B_Quality_Check
+    fastqc_path = 'resolve' # path to previously downloaded FastQC, within user's computer
+        ## save this path earlier when dowloading, or have user manually input it here
+    for SRR in SRR_paths:
+        B_Quality_Check.run_FastQC(fastqc_path,SRR)
+
+    # Optional: Running MultiQC on FastQC data to create visual for user, per condition
+    print("Would you like to run a visualizer for the quality checks done on each of your conditions?")
+    print("This will output links which you can open in a browser.")
+    query = input("Run MultiQC? y/n : ")
+    if query == 'y':
+        for var in os.listdir(Samples_path): # for each variable in the Samples folder
+            var_path = os.path.join(Samples_path, var)
+            for cond in os.listdir(var_path): # for each condition in the var_n folder
+                cond_path = os.path.join(var_path, cond)
+                B_Quality_Check.run_MultiQC(cond_path)
+    
+    profile.dict["STEP"] = "C"
 
 # Trimming SRR data using Quality Check results
 import C_Trimming
@@ -305,6 +343,7 @@ print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DE
         # DESeq2
             # DESeq2_results_var_1.csv
             # DESeq2_results_var_2.csv
+            # ...
 
 # make DESeq2 results folder
 deseq2_results_folder = os.path.join(Results_path, "DESeq2")
