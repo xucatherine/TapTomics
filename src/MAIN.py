@@ -17,13 +17,21 @@ folder: Samples
                 file: FastQC        
                 file: trimmed    (suggestion: trimmed.fastq)
                 file: BAM        (suggestion: aligned.bam)
+                file: counts.csv
                 [...]
             [more SRR folders]
         [more cond folders]
     [more var folders]
 
 folder: References
-    [type unsure]: ref_genome
+    file: genome.gtf
+    folder: compiled_counts
+        folder: var_x
+            comp_counts.csv
+            norm_counts.csv
+            vst_counts.csv
+            metadata.csv
+        [more var folders]
     [...]
 
 folder: Results
@@ -40,44 +48,103 @@ import os
 import subprocess
     # we need this to call fastq-dump
 
+from A_minis import Bioinf_Profile
+
+print("~~~ Welcome to our bioinformatic pipeline! ~~~\n")
+
+Steps = {
+    "A": "Sample Setup and Download",
+    "B": "Quality Check",
+    "C": "Trimming",
+    "D": "Reference-based Assembly/Mapping",
+    "E": "Abundance Estimation",
+    "F": "De novo Analysis with Seq2Fun",
+    "G": "Differential Expression Analysis",
+    "H": "Coexpression Analysis"
+}
+
+def paths_setup():
+    # Prep Bioinf_profile object and path variables
+    profile = Bioinf_Profile() # stores paths to different tools
+    global SRA_toolkit_path, Samples_path, References_path, Results_path
+
+    # Check if the pipeline has already been run & information has been saved
+    if os.path.isfile(".bioinf-profile"):
+        profile.read_profile()
+
+        print("It looks likes you ran the bioinformatic pipeline previously")
+        print(f"and reached Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}")
+        print("Would you like to...")
+        print(f"\t (1) continue the pipeline starting from Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}?")
+        print("\t or (2) start over the pipeline?")
+        m = input("Please enter 1 or 2: ")
+        if m == '1': 
+            start_over = False
+            path = profile.dict["PATH"]
+            SRA_toolkit_path = profile.dict["SRA_TOOLKIT_PATH"]
+            Samples_path = path+"/Samples"
+            References_path = path+"/References"
+            Results_path = path+"/Results"
+        elif m == '2': start_over = True
+    else: # if the .bioinf-profile file doesn't exist, run the pipeline from the start
+        start_over = True
+    
+    if start_over: 
+        # only runs if user has never run the pipeline before, or if user wants to restart the pipeline
+        # Setting up path to save folders in & user email to access NCBI
+        # this loops until the user inputs a valid path
+        while True:
+            path = str(input("Please enter a path for where you would like this pipeline's running data and results stored: "))
+            ## We should maybe set a default to use bioinformatic-pipeline
+            if not os.path.isdir(path):
+                print("Error: invalid directory path. Please enter a valid path to a directory/folder.")
+            else:
+                break
+        #repo = Repo.clone_from("https://github.com/xucatherine/bioinformatic-pipeline/src.git", path)
+        #Entrez.email = str(input("\nNCBI requires an email address to track usage of their services.\nPlease input your email address: "))
+            # NCBI Entrez requires an email address (according to BioBuddy)
+            ## Not sure if email address needs to be linked to an account already
+
+        # Ask the user to install the SRA-toolkit from NCBI. Ask the user for the path of the folder.
+        print("\nTo obtain FastQ files from NCBI SRRs, we will be using NCBI's SRA Toolkit.")
+        print("Please download the SRA Toolkit zip file for your operating system from \nthe following page: https://github.com/ncbi/sra-tools/wiki/02.-Installing-SRA-Toolkit")
+        print("Then, extract the zip file where you would like to store the toolkit.")
+        SRA_toolkit_path = input("Please input the path to the SRA Toolkit folder (e.g. /Users/..../sratoolkit.3.x.x-mac-x86_64):")
+
+        # On MacOS, the folder will automatically be flagged as coming from an unknown developper and this script will not be able to open the folder
+        # check for the com.apple.quarantine flag and remove it if the folder has it
+        xattr_list=subprocess.run(["xattr", SRA_toolkit_path], capture_output=True, text=True).stdout.split('\n')
+        if "com.apple.quarantine" in xattr_list:
+            subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", SRA_toolkit_path])
+        
+        # Setting up Samples, References and Results folders (within the user's inputted path)
+        Samples_path = path+"/Samples"
+        os.makedirs(Samples_path, exist_ok=True)
+        References_path = path+"/References"
+        os.makedirs(References_path, exist_ok=True)
+        Results_path = path+"/Results"
+        os.makedirs(Results_path, exist_ok=True)
+
+        # update the variables in .bioinf-profile
+        profile.dict["PATH"] = path
+        profile.dict["SRA_TOOLKIT_PATH"] = SRA_toolkit_path
+        profile.dict["STEP"] = "A"
+        profile.update_profile()
+    
+    ## Always Runs ##
+    # Creating list of SRRs for easy processing - iterates through all folders in Samples
+    global SRR_paths
+    SRR_paths = []
+    for var in os.listdir(Samples_path): # for each variable in the Samples folder
+        var_path = os.path.join(Samples_path, var)
+        for cond in os.listdir(var_path): # for each condition in the var_n folder
+            cond_path = os.path.join(var_path, cond)
+            for SRR in os.listdir(cond_path): # for each SRR in the cond_k folder
+                SRR_path = os.path.join(cond_path, SRR)
+                SRR_paths.append(SRR_path)
+
 def samples_setup():
-    # Setting up path to save folders in & user email to access NCBI
-    # this loops until the user inputs a valid path
-    while True:
-        path = str(input("Please enter a path for where you would like this pipeline's running data and results stored: "))
-        ## We should maybe set a default to use bioinformatic-pipeline
-        if not os.path.isdir(path):
-            print("Error: invalid directory path. Please enter a valid path to a directory/folder.")
-        else:
-            break
-    #repo = Repo.clone_from("https://github.com/xucatherine/bioinformatic-pipeline/src.git", path)
-    #Entrez.email = str(input("\nNCBI requires an email address to track usage of their services.\nPlease input your email address: "))
-        # NCBI Entrez requires an email address (according to BioBuddy)
-        ## Not sure if email address needs to be linked to an account already
-
-    # Ask the user to install the SRA-toolkit from NCBI. Ask the user for the path of the folder.
-    print("\nTo obtain FastQ files from NCBI SRRs, we will be using NCBI's SRA Toolkit.")
-    print("Please download the SRA Toolkit zip file for your operating system from \nthe following page: https://github.com/ncbi/sra-tools/wiki/02.-Installing-SRA-Toolkit")
-    print("Then, extract the zip file where you would like to store the toolkit.")
-    SRA_toolkit_path = input("Please input the path to the SRA Toolkit folder (e.g. /Users/..../sratoolkit.3.x.x-mac-x86_64):")
-    fasterq_dump_path = os.path.join(SRA_toolkit_path, "bin", "fasterq-dump")
-
-    # On MacOS, the folder will automatically be flagged as coming from an unknown developper and this script will not be able to open the folder
-    # check for the com.apple.quarantine flag and remove it if the folder has it
-    xattr_list=subprocess.run(["xattr", SRA_toolkit_path], capture_output=True, text=True).stdout.split('\n')
-    if "com.apple.quarantine" in xattr_list:
-        subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", SRA_toolkit_path])
-
-    # Setting up Samples, References and Results folders (within the user's inputted path)
-    global Samples_path # 'global' makes the variable accessible outside the function
-    Samples_path = path+"/Samples"
-    os.makedirs(Samples_path, exist_ok=True)
-    global References_path # 'global' makes the variable accessible outside the function"
-    References_path = path+"/References"
-    os.makedirs(References_path, exist_ok=True)
-    global Results_path # 'global' makes the variable accessible outside the function
-    Results_path = path+"/Results"
-    os.makedirs(Results_path, exist_ok=True)
+    fasterq_dump_path = os.path.join(SRA_toolkit_path, "bin", "fasterq-dump") # path to the tool that will fetch fastQ files
 
     # Entering data into Samples folder - starting with number of variables to study
     print("\nUsing differential analysis to decode metabolic pathways involves identifying \nexperimental variables under which expression of the phenotype of interest differs.")
@@ -98,6 +165,7 @@ def samples_setup():
             else: break # otherwise, the number is valid; break the loop
 
     ## initialize a dictionary here to which var and cond names can be stored?
+    # Initialize global variables to store the variable names and conditions
 
     # For each variable, make the right number of conditions folders and add data
     for i in range(n):
@@ -132,7 +200,7 @@ def samples_setup():
             SRRs_list = SRRs.split() # making list of SRRs
             
             # Starting the downloads
-            print("We will now download the FastQ files for each SRR. Each SRR can take ~5 minutes.")
+            print("We will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
             if os.path.isdir(os.path.join(var_path, cond)):
                 cond_path = os.path.join(var_path, cond)
                 for SRR in SRRs_list: # loop through each SRR
@@ -148,20 +216,26 @@ def samples_setup():
                                 # SRR000000_3.fastq ;  any unpaired/unmatched reads
                         # renaming the files to generic name
                         for file in os.listdir(SRR_path):
-                            if file.startswith(SRR) and file.endswith(".fastq"):
-                                num = file[-7] # extract the number
-                                new_name = "raw_" + num + ".fastq"
-                                os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                            if file.startswith(SRR):
+                                if file.endswith("_1.fastq"):
+                                    new_name = "rawF.fastq"
+                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                                elif file.endswith("_2.fastq"):
+                                    new_name = "rawR.fastq"
+                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                                else:
+                                    os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
                     except subprocess.CalledProcessError as e:
                         print(f"An error occurred while downloading {SRR}: {e}")  
 
-                        
-                    
-
     print("Thank you! Your transcriptomes are ready for processing.")
 
-samples_setup()
+paths_setup()
 
+## Use a switch case or if statements to jump ahead in the code
+
+samples_setup()
+            
 ######################################
 # Running Quality Checks on SRR data #
 ######################################
