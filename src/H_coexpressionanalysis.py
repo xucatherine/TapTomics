@@ -4,6 +4,7 @@
 
 import PyWGCNA
 import pandas as pd
+import os
 
 class coexpressionanalysis:
 
@@ -139,7 +140,7 @@ class coexpressionanalysis:
               )
 
     #now save data frame to csv file
-    correlatedgenesdf.to_csv('candidate genes from pathway coexpression with experimental variable correlation')
+    correlatedgenesdf.to_csv(os.path.join(outputpath,'candidate genes from pathway coexpression with experimental variable correlation'))
 
     ####visualization for the POSTER
     #for correlation visualization
