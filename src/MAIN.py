@@ -1,7 +1,5 @@
 
 ## Missing: ask the user for brief description each variable and condition, and store entries in a dictionary
-## Get rid of FASTA files?
-
 
 # Welcome to the MAIN script for the Bioinformatic Pipeline! 
 # The user runs this script, and is guided through the steps of transcriptomic analysis
@@ -52,21 +50,20 @@ import os
 import subprocess
     # we need this to call fastq-dump
 
-from A_minis import Bioinf_Profile
+from A_minis import Bioinf_Profile, listdir_visible, name
 
-print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-print("\t~~~ Welcome to our bioinformatic pipeline! ~~~")
-print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("\t~~  Welcome to Taptomics!  ~~")
+print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
 Steps = {
     "A": "Sample Setup and Download",
     "B": "Quality Check",
     "C": "Trimming",
     "D": "Reference-based Assembly/Mapping",
-    "E": "Abundance Estimation",
-    "F": "De novo Analysis with Seq2Fun",
-    "G": "Differential Expression Analysis",
-    "H": "Coexpression Analysis"
+    "E": "De novo Analysis with Seq2Fun",
+    "F": "Differential Expression Analysis",
+    "G": "Coexpression Analysis"
 }
 
 # Initialize Bioinf_profile object 
@@ -75,10 +72,13 @@ profile = Bioinf_Profile()
 # and that will be used in multiple places in MAIN.py:
 # These are listed here more to help remember which variables are meant to be global
 SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths = None, None, None, None, None
-VAR_names, COND_names = None, None
+VAR_names, COND_names, COND_quant = None, None, None
     # VAR_names = [var_1 name, var_2 name, ...]
     # COND_names = [[cond_1 name, cond_2 name, ...],  (var_1)
     #               [cond_1 name, cond_2 name, ...],  (var_2)
+    #               ...]
+    # COND_quant = [[cond_1 quantifier, cond_2 quantifier, ...],  (var_1)
+    #               [cond_1 quantifier, cond_2 quantifier, ...],  (var_2)
     #               ...]
 
 def paths_setup():
@@ -123,7 +123,7 @@ def paths_setup():
         # Ask the user to install the SRA-toolkit from NCBI. Ask the user for the path of the folder.
         print("\nTo obtain FastQ files from NCBI SRRs, we will be using NCBI's SRA Toolkit.")
         print("Please download the SRA Toolkit zip file for your operating system from \nthe following page: https://github.com/ncbi/sra-tools/wiki/02.-Installing-SRA-Toolkit")
-        print("Then, extract the zip file where you would like to store the toolkit.")
+        print("Then, unzip the zip file where you would like to store the toolkit.")
         SRA_toolkit_path = input("Please input the path to the SRA Toolkit folder (e.g. /Users/..../sratoolkit.3.x.x-mac-x86_64):")
 
         # On MacOS, the folder will automatically be flagged as coming from an unknown developper and this script will not be able to open the folder
@@ -143,16 +143,17 @@ def paths_setup():
         # update the variables in .bioinf-profile
         profile.dict["PATH"] = os.path.abspath(path)
         profile.dict["SRA_TOOLKIT_PATH"] = os.path.abspath(SRA_toolkit_path)
+        profile.dict["STEP"] = "A"
         profile.update_profile()
     
     ## Always Runs ##
     # Creating list of SRRs for easy processing - iterates through all folders in Samples
     SRR_paths = []
-    for var in os.listdir(Samples_path): # for each variable in the Samples folder
+    for var in sorted(listdir_visible(Samples_path)): # for each variable in the Samples folder
         var_path = os.path.join(Samples_path, var)
-        for cond in os.listdir(var_path): # for each condition in the var_n folder
+        for cond in sorted(listdir_visible(var_path)): # for each condition in the var_n folder
             cond_path = os.path.join(var_path, cond)
-            for SRR in os.listdir(cond_path): # for each SRR in the cond_k folder
+            for SRR in sorted(listdir_visible(cond_path)): # for each SRR in the cond_k folder
                 SRR_path = os.path.join(cond_path, SRR)
                 SRR_paths.append(SRR_path)
 
@@ -208,7 +209,7 @@ def samples_setup():
 
         # Getting SRRs and downloading their FASTQ files, for each variable
         SRRs_matrix = []
-        for cond in sorted(os.listdir(var_path)): # for condition folder in parent folder var_n
+        for cond in sorted(listdir_visible(var_path)): # for condition folder in parent folder var_n
             print(f"\nList the SRR numbers belonging to variable {i+1}'s condition {cond.split('_')[-1]}, separated by spaces.")
             print("ex: SRR12345678 SRR91011109 SRR87654321")
             SRRs = input("SRR numbers: ") #[user inputs SRRs]
@@ -218,7 +219,7 @@ def samples_setup():
         print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
 
         # downloading the FASTQ files
-        cond_list = sorted(os.listdir(var_path))
+        cond_list = sorted(listdir_visible(var_path))
         for i in range(len(cond_list)): # for condition folder in parent folder var_n
             # Starting the downloads
             print(f"\nDownloading SRRs for condition {i+1}")
@@ -261,43 +262,84 @@ def samples_setup():
 paths_setup()
 
 ## Use if statements to jump ahead in the code
-profile.dict["STEP"] = "A"
 
 if profile.dict["STEP"] == "A": 
-    print("\n\t################################")
-    print("\t# A: Sample Setup and Download #")
-    print("\t################################")
+    print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("\t~ A: Sample Setup and Download ~")
+    print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     samples_setup()
     profile.dict["STEP"] = "B"
+    profile.update_profile()
 
-######################################
-# Running Quality Checks on SRR data #
-######################################
+##################################
+# Run Quality Checks on SRR data #
+##################################
 
 if profile.dict["STEP"] == "B":
+    print("\n\t~~~~~~~~~~~~~~~~~~~")
+    print("\t~ B: Quality Check ~")
+    print("\t~~~~~~~~~~~~~~~~~~~~\n")
+
+    # Add brief explanation about quality checks?
+
     import B_Quality_Check
-    fastqc_path = 'resolve' # path to previously downloaded FastQC, within user's computer
-        ## save this path earlier when dowloading, or have user manually input it here
+    if profile.dict["FASTQC_PATH"] == "": # Check if no path has been entered before
+        ## Add download instructions - or maybe do this in path_setup?
+        print("From the FastQC website (https://www.bioinformatics.babraham.ac.uk/projects/download.html#fastqc)")
+        print("download and unzip the zip file 'FastQC vX.XX.X (Win/Linux zip file)' (even if you are on MacOS).")
+        fastqc_path = input("Please enter the path to the FastQC folder (e.g. User/..../FastQC): ") # path to previously downloaded FastQC, within user's computer
+            ## save this path earlier when dowloading, or have user manually input it here
+        # check for the com.apple.quarantine flag and remove it if the folder has it
+        xattr_list=subprocess.run(["xattr", fastqc_path], capture_output=True, text=True).stdout.split('\n')
+        if "com.apple.quarantine" in xattr_list:
+            subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", SRA_toolkit_path])
+
+        profile.dict["FASTQC_PATH"] = os.path.abspath(fastqc_path)
+        profile.update_profile()
+    else: 
+        fastqc_path = profile.dict["FASTQC_PATH"]
+
+    fastqc_exe = os.path.join(fastqc_path, "fastqc") # the executable for fastqc is located inside the FastQC folder
+    print("We will now run FastQC on each SRR's .fastq files.")
     for SRR in SRR_paths:
-        B_Quality_Check.run_FastQC(fastqc_path,SRR)
+        print(f"Running FastQC on {name(SRR)}...")
+        # Check if FastQC has already been run on this SRR by checking for existence of rawF_fastqc & rawR_fastqc folders
+        if os.path.isdir(os.path.join(SRR, 'rawF_fastqc')) and os.path.isdir(os.path.join(SRR, 'rawR_fastqc')): 
+            print(f"It looks like FastQC was already run on {name(SRR)}! Skipping to the next SRR...")
+            continue
+        B_Quality_Check.run_FastQC(fastqc_exe,SRR)
+    print("Done analyzing all SRRs with FastQC!")
 
     # Optional: Running MultiQC on FastQC data to create visual for user, per condition
-    print("Would you like to run a visualizer for the quality checks done on each of your conditions?")
+    print("\nWould you like to run a visualizer for the quality checks done on each of your conditions?")
     print("This will output links which you can open in a browser.")
-    query = input("Run MultiQC? y/n : ")
+    query = input("Run MultiQC? y/n: ")
     if query == 'y':
-        for var in os.listdir(Samples_path): # for each variable in the Samples folder
+        for var in listdir_visible(Samples_path): # for each variable in the Samples folder
             var_path = os.path.join(Samples_path, var)
-            for cond in os.listdir(var_path): # for each condition in the var_n folder
+            for cond in listdir_visible(var_path): # for each condition in the var_n folder
                 cond_path = os.path.join(var_path, cond)
                 B_Quality_Check.run_MultiQC(cond_path)
     
     profile.dict["STEP"] = "C"
+    profile.update_profile()
 
-# Trimming SRR data using Quality Check results
-import C_Trimming
-for SRR in SRR_paths:
-    C_Trimming.run_cutadapt(SRR)
+#################################################
+# Trimming SRR data using Quality Check results #
+#################################################
+
+if profile.dict["STEP"] == "C":
+    print("\n\t~~~~~~~~~~~~~~")
+    print("\t~ C: Trimming ~")
+    print("\t~~~~~~~~~~~~~~~\n")
+    import C_Trimming
+    for SRR in SRR_paths:
+        C_Trimming.run_cutadapt(SRR)
+
+    ## Ask if there is a genome here, jump to Reference-based assembly or De novo
+    
+    profile.dict["STEP"] = "D"
+    profile.update_profile()
 
 # Next...
 ## Ask if there is a genome somewhere, jump to Reference-based assembly or De novo
@@ -305,80 +347,93 @@ for SRR in SRR_paths:
 #################################### 
 # Reference-based assembly/mapping #
 ####################################
+if profile.dict["STEP"] == "D":
+    
+    ## PUT RNA STAR CODE HERE
 
+
+    profile.dict["STEP"] = "F"
+    profile.update_profile()
 
 
 #####################
 # De novo - Seq2Fun #
 #####################
+if profile.dict["E"]:
 
+    ## PUT SEQ2FUN CODE HERE
+
+    profile.dict["F"]
+    profile.update_profile()
 
 
 ####################################
 # Differential Expression Analysis #
 ####################################
+if profile.dict["STEP"] == "F":
+    print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("\t~ F: Differential Expression Analysis ~")
+    print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
-from I_differential_exp import setup_genecount_matrix, organize_DESeq2_genecounts, run_DESeq2_R
+    from I_differential_exp import organize_DESeq2_genecounts, run_DESeq2_R
 
-print("\nDifferential Expression Analysis will now be performed using DESeq2.")
-print("For one variable, DESEq2 will compare pairs of conditions, using the gene counts from all of the conditions")
-print("to calculate the 'degree' of differential expression for each gene.")
-print("This degree of differential expression is represented by statistical numbers like log2-fold change and p-value.")
-print("For more information on how to interpret the DESeq2 results:")
-print("https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/05b_wald_test_results.html#p-values")
-print("For more information on how DESeq2 works:")
-print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")
+    print("\nDifferential Expression Analysis will now be performed using DESeq2.")
+    print("For one variable, DESEq2 will compare pairs of conditions, using the gene counts from all of the conditions")
+    print("to calculate the 'degree' of differential expression for each gene.")
+    print("This degree of differential expression is represented by statistical numbers like log2-fold change and p-value.")
+    print("For more information on how to interpret the DESeq2 results:")
+    print("https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/05b_wald_test_results.html#p-values")
+    print("For more information on how DESeq2 works:")
+    print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")
+
+    # make DESeq2 results folder
+    deseq2_results_folder = os.path.join(Results_path, "DESeq2")
+    if not os.path.exists(deseq2_results_folder): os.mkdir(deseq2_results_folder) # make the folder if it doesn't exist already
+
+    # make compiled_counts folder
+    compiled_counts_path = os.path.join(References_path, "compiled_counts")
+    if not os.path.exists(compiled_counts_path): os.mkdir(compiled_counts_path)
+        
+    # make the sub folders under compiled_counts, one for each variable
+    var_list = listdir_visible(Samples_path) # use Samples folder to know how many variables/names of the variable folders
+    for var_dir in var_list:
+        compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+        if not os.path.exists(compiled_counts_var_path): os.mkdir(compiled_counts_var_path) 
+        
+    # Setup data for DESeq2. 
+    for var_dir in var_list:
+        samples_var_path = os.path.join(Samples_path, var_dir)
+        compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+        organize_DESeq2_genecounts(samples_var_path, results_folder=compiled_counts_var_path)
+            # Compiles all of the counts from Samples/var_n into 1 table (comp_counts.csv)
+            # For each sample/SRR in the table, records the corresponding condition in metadata.csv
+
+    # Run DESeq2 for each var
+    for var_dir in var_list:
+        comp_counts_csv_path = os.path.join(compiled_counts_path, var_dir, "comp_counts.csv")
+        metadata_path = os.path.join(compiled_counts_path, var_dir, "metadata.csv")
+        result_file = "DESeq2_results_" + var_dir
+        deseq2_result_file_path = os.path.join(deseq2_results_folder, result_file)
+        compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
+
+        run_DESeq2_R(comp_counts_csv_path, metadata_path, deseq2_result_file_path, compiled_counts_var_path, "TRUE", "TRUE")
     
-# Folders to save information for DESeq2
-    # References
-        # compiled_counts
-            # var_1
-                # comp_counts.csv
-                # metadata.csv
-                # norm_counts.csv
-                # vst_counts.csv
-            # var_2
-                # ...
-    # Results
-        # DESeq2
-            # DESeq2_results_var_1.csv
-            # DESeq2_results_var_2.csv
-            # ...
-
-# make DESeq2 results folder
-deseq2_results_folder = os.path.join(Results_path, "DESeq2")
-if not os.path.exists(deseq2_results_folder): os.mkdir(deseq2_results_folder) # make the folder if it doesn't exist already
-
-# make compiled_counts folder
-compiled_counts_path = os.path.join(References_path, "compiled_counts")
-if not os.path.exists(compiled_counts_path): os.mkdir(compiled_counts_path)
-    
-# make the sub folders under compiled_counts, one for each variable
-var_list = os.listdir(Samples_path) # use Samples folder to know how many variables/names of the variable folders
-for var_dir in var_list:
-    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
-    if not os.path.exists(compiled_counts_var_path): os.mkdir(compiled_counts_var_path) 
-    
-# Setup data for DESeq2. 
-for var_dir in var_list:
-    samples_var_path = os.path.join(Samples_path, var_dir)
-    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
-    organize_DESeq2_genecounts(samples_var_path, results_folder=compiled_counts_var_path)
-        # Compiles all of the counts from Samples/var_n into 1 table (comp_counts.csv)
-        # For each sample/SRR in the table, records the corresponding condition in metadata.csv
-
-# Run DESeq2 for each var
-for var_dir in var_list:
-    comp_counts_csv_path = os.path.join(compiled_counts_path, var_dir, "comp_counts.csv")
-    metadata_path = os.path.join(compiled_counts_path, var_dir, "metadata.csv")
-    result_file = "DESeq2_results_" + var_dir
-    deseq2_result_file_path = os.path.join(deseq2_results_folder, result_file)
-    compiled_counts_var_path = os.path.join(compiled_counts_path, var_dir)
-
-    run_DESeq2_R(comp_counts_csv_path, metadata_path, deseq2_result_file_path, compiled_counts_var_path, "TRUE", "TRUE")
+    profile.dict["STEP"] = "G"
+    profile.update_profile()
 
 
 ##########################
 # Co-Expression Analysis #
 ##########################
-    
+        
+if profile.dict["STEP"] == "G":
+
+    ## 
+
+    profile.dict["STEP"] = "END"
+    profile.update_profile()
+
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+print("~ You have reached the end of the pipeline! ~")
+print("~     Thank you for using Taptomics :)      ~")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")

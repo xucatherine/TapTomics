@@ -9,8 +9,10 @@
 
 # Imports
 import subprocess
-import A_minis
-    # to be able to call var(), cond() and name()
+import A_minis # to be able to call var(), cond() and name()
+import os
+import time
+
 
 # FastQC Inputs
     # needs path to FASTQ file's SRR folder
@@ -19,16 +21,45 @@ import A_minis
     # outputs 'FastQC' file in appropriate SRR folder
 
 # Running FastQC Quality Check
-def run_FastQC(fastqc_path,SRR_path):
-    FASTQ_path = SRR_path+"/FASTQ"
-    FastQC_path = SRR_path+"/FastQC" # output directory
-    cmd = [fastqc_path, FASTQ_path, '-o', FastQC_path] # making command term
-    subprocess.run(cmd, check=True) 
-    try:
-        subprocess.run(cmd, check=True) # running FastQC
-        print(f"FastQC analysis for variable "+A_minis.var(SRR_path)+", condition "+A_minis.cond(SRR_path)+"'s "+A_minis.name(SRR_path)+" completed.") # specifies using MAIN's functions
-    except subprocess.CalledProcessError as e:
-        print(f"Error during FastQC analysis for variable "+A_minis.var(SRR_path)+", condition "+A_minis.cond(SRR_path)+"'s "+A_minis.name(SRR_path)+": {e}")
+def run_FastQC(fastqc_path, SRR_path):
+    fastq_list = ["rawF.fastq", "rawR.fastq"]
+
+    for fastq_file in fastq_list: # iterate through the forward and reverse files
+        cmd = [fastqc_path, "--extract", "--delete", "--quiet", os.path.join(SRR_path, fastq_file)] 
+            # Set up the command for FastQC
+            # note that FastQC outputs the result files in the same directory as the input directory
+            ## FastQC produces several different files; we only need the raw data file in the SRR folder.
+                ## Later, I want to make it so that the other files get deleted or moved to another folder.
+        attempt = 0
+        wait_time = 5
+        while attempt < 3:
+            try:
+                subprocess.run(cmd, check=True, stdout=subprocess.PIPE)
+            except subprocess.CalledProcessError:
+                print(f"Error during FastQC analysis for variable {A_minis.var(SRR_path)}, condition {A_minis.cond(SRR_path)}'s {A_minis.name(SRR_path)}'s {fastq_file}.")
+                print(f"Retrying in {wait_time} seconds.")
+                time.sleep(wait_time)
+                attempt += 1
+            else: # no error
+                print(f"FastQC analysis for variable {A_minis.var(SRR_path)}, condition {A_minis.cond(SRR_path)}'s {A_minis.name(SRR_path)} {fastq_file} completed.")
+                break
+
+            '''result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) # running FastQC
+            if result.returncode == 0: # Check if FastQC was successful
+                print(f"FastQC analysis for variable {A_minis.var(SRR_path)}, condition {A_minis.cond(SRR_path)}'s {A_minis.name(SRR_path)} {fastq_file} completed.") # specifies using MAIN's functions
+                break
+            else:
+                print(f"Error during FastQC analysis for variable {A_minis.var(SRR_path)}, condition {A_minis.cond(SRR_path)}'s {A_minis.name(SRR_path)}'s {fastq_file}.")
+                print(f"Retrying in {wait_time} seconds.")
+                time.sleep(wait_time)
+                attempt += 1'''
+        
+        if attempt == 3:
+            print(f"FastQC has failed {attempt} times. There may be an issue with the fastq files or FastQC.")
+            return -1
+    return
+
+
 
 # MultiQC Inputs
     # needs path to relevant condition folder
@@ -50,3 +81,5 @@ def run_MultiQC(cond_path):
     else:
         print("MultiQC encountered an error for variable "+var+"'s condition "+cond+":")
         print(result.stderr)
+    
+    return

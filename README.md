@@ -1,6 +1,17 @@
 # bioinformatic-pipeline
 BIEN470 project. A pipeline that analyses transcriptome data and lists genes who's activity correlate with a specified condition.
 
+Languages/compilers to install:
+- Python
+- R
+- Java Runtime Environment (JRE)
+- GCC
+
+Tools to install (the pipeline will ask for the path to these toolkits):
+- SRA Toolkit
+- FastQC
+- RNA STAR
+- Seq2Fun
 
 ## Install Python packages
 Within the bioinformatic-pipeline directory, run the following commands in the terminal:

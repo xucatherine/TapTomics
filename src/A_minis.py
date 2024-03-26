@@ -10,11 +10,15 @@ def cond(SRR_path):
     folders = SRR_path.split('/') # splitting the path into its folders
     cond_number = folders[-2].split('_')[1] # counting backwards from known number of '/'
     return cond_number
-def name(SRR_path):
+def name(SRR_path): # returns just the SRR?
     folders = SRR_path.split('/') # splitting the path into its folders
-    name = folders[-1].split('_')[1] # counting backwards from known number of '/'
+    name = folders[-1]
     return name
 
+def listdir_visible(directory):
+    # This function only lists the visible files and directories in a directory
+        # in comparison, the os.listdir() function lists both visible and hidden directories
+    return [item for item in os.listdir(directory) if not item.startswith('.')]
 
 class Bioinf_Profile():
     def __init__(self, profile_path=".bioinf-profile"):
@@ -22,7 +26,10 @@ class Bioinf_Profile():
         self.dict = { # using a dictionary to make writing to text file easier
             "STEP": "",
             "PATH": "",
-            "SRA_TOOLKIT_PATH": ""
+            "SRA_TOOLKIT_PATH": "",
+            "FASTQC_PATH": "",
+            "RNA_STAR_PATH": "",
+            "SEQ2FUN_PATH": ""
         }
         return
     
@@ -45,7 +52,3 @@ class Bioinf_Profile():
             file.write(key + '=' + self.dict[key] + '\n')
         return
 
-if os.path.isfile(".bioinf-profile"):
-    profile1 = Bioinf_Profile()
-    profile1.read_profile()
-    
