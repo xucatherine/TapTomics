@@ -59,12 +59,12 @@ class coexpressionanalysis:
     metadfs = []
     #initializing color mapping dictionary
     color_mapping = {}
-    for i in enumerate(metadatapaths):
+    for i in range(len(metadatapaths)):
       #create database from csv file
       metadf = pd.read_csv(metadatapaths[i], index_col=0)
       metadfs.append(metadf)
       unique_conditions = metadf['condtion'].unique()
-      for j in enumerate(unique_conditions):
+      for j in range(len(unique_conditions)):
         #creating dictionary of colors 
         color_mapping.update({unique_conditions[j]:wgcna.metadataColors()[j]})
       wgcna.setMetadataColor(variables[i], color_mapping)
@@ -117,7 +117,7 @@ class coexpressionanalysis:
     correlatedgenesdf = pd.DataFrame(columns =['Variable', 'Module','Genes'])
 
     #look for modules that are correlated to to the variables in the desired way
-    for i in enumerate(variables):
+    for i in range(len(variables)):
       if correlationtype[i]=='positive':
         #iterate through the pathway modules
         for j in pathwaymodules:
