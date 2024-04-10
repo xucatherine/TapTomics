@@ -5,7 +5,7 @@ Languages/compilers to install:
 - Python
 - R
 - Java Runtime Environment (JRE)
-- GCC
+- GCC, XCode
 
 Tools to install (the pipeline will ask for the path to these toolkits):
 - SRA Toolkit
