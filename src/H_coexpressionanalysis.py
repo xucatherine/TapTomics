@@ -63,6 +63,8 @@ class coexpressionanalysis:
     print(f"Raw gene inforamtions:")
     print(wgcna.datExpr.var.head(5))
 
+    #updating user
+    print('Data preprocessed and modules built successfully')
       
     #inserting metadata *****************Test this section*********
     #the variable order corresponds to the geneExppaths and metadatapaths order
@@ -158,6 +160,8 @@ class coexpressionanalysis:
     #save object as a .p file
     print("save WGCNA")
     wgcna.saveWGCNA()
+    #updating user
+    print('WGCNA analyzed and saved successfully')
 
     #PATHWAY CO-EXPRESSION
 
@@ -219,6 +223,8 @@ class coexpressionanalysis:
 
     #now save data frame to csv file
     correlatedgenesdf.to_csv(os.path.join(outputpath,'candidate genes from pathway coexpression with experimental variable correlation'))
+    #updating user
+    print('Candidate genes identified and saved successfully')
 
     ####visualization for the POSTER
     #for module visualization
