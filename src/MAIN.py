@@ -11,9 +11,12 @@ folder: Samples
         folder: cond_y    # cond_1, cond_2, cond_3,...
             folder: SRR (subfiles can be added later)
                 file: FASTA        (suggestion: raw.fasta)
-                file: FASTQ        (suggestion: raw.fastq)
-                file: FastQC        
-                file: trimmed    (suggestion: trimmed.fastq)
+                file: rawF_fastq_data.txt
+                file: rawR_fastq_data.txt
+                file: rawF.fastq
+                file: rawR.fastq
+                file: trimmedF    (suggestion: trimmed.fastq)
+                file: trimmedR
                 file: BAM        (suggestion: aligned.bam)
                 file: counts.csv
                 [...]
