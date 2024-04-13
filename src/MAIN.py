@@ -43,7 +43,7 @@ folder: Results
 # Imports
 # from git import Repo
     # using gitpython we can access GitHub to make new folders for user's data
-from Bio import Entrez
+#from Bio import Entrez
     # 'Entrez' allows us to send requests to NCBI databases (from BioPython)
 import os
     # we need this to edit folders
@@ -68,7 +68,9 @@ Steps = {
 
 # Initialize Bioinf_profile object 
 profile = Bioinf_Profile()
-# Path variables that are assigned values within the setup functions
+
+###########################################################################
+# Important variables that are assigned values within the setup functions #
 # and that will be used in multiple places in MAIN.py:
 # These are listed here more to help remember which variables are meant to be global
 SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths = None, None, None, None, None
@@ -325,7 +327,7 @@ if profile.dict["STEP"] == "B":
     profile.update_profile()
 
 #################################################
-# Trimming SRR data using Quality Check results #
+# Trimming SRR data using Quality Check results #   !Unfinished!
 #################################################
 
 if profile.dict["STEP"] == "C":
@@ -345,7 +347,7 @@ if profile.dict["STEP"] == "C":
 ## Ask if there is a genome somewhere, jump to Reference-based assembly or De novo
 
 #################################### 
-# Reference-based assembly/mapping #
+# Reference-based assembly/mapping #    !Unfinished!
 ####################################
 if profile.dict["STEP"] == "D":
     
@@ -357,7 +359,7 @@ if profile.dict["STEP"] == "D":
 
 
 #####################
-# De novo - Seq2Fun #
+# De novo - Seq2Fun #   !Unfinished!
 #####################
 if profile.dict["E"]:
 
@@ -423,7 +425,7 @@ if profile.dict["STEP"] == "F":
 
 
 ##########################
-# Co-Expression Analysis #
+# Co-Expression Analysis #  !Unfinished!
 ##########################
         
 if profile.dict["STEP"] == "G":
