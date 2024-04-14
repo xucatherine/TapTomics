@@ -353,8 +353,23 @@ if profile.dict["STEP"] == "C":
 # Reference-based assembly/mapping #    !Unfinished!
 ####################################
 if profile.dict["STEP"] == "D":
-    
-    ## PUT RNA STAR CODE HERE
+    print("\n\t~~~~~~~~~~~~~~")
+    print("\t~ D: Reference Mapping ~")
+    print("\t~~~~~~~~~~~~~~~\n")
+    print('For this section you must have RNA STAR installed and made on your local computer. You will also need the genome and annotations for your organism of interest downloaded in fasta and gtf files respectively. These can be found on NCBI.')
+    #initializing the variables we will need
+    STARpath = str(input('Please enter the path to RNA STAR: '))
+    genomefolder = str(input('Please enter the path to the folder in which the genome files are stored: '))
+    genomefasta = str(input('Please enter the path to the genome fasta file: '))
+    genomegtf = str(input('Please enter the path to the genome gtf file: '))
+    CPUcores = str(input('How many cores would you like STAR to utilize? You can check how many cores your computer has or choose how many are available in the network where you are running it: '))
+    import D_referencemapping
+    for SRR in SRR_paths:
+        resultpath = SRR
+        fastqfiles = [SRR+'/rawF.fastq', SRR+'/rawR.fastq']
+        #initializing object of the class
+        g = D_referencemapping.referencemap()
+        g.star(STARpath, genomefolder,genomefasta, genomegtf, fastqfiles,resultpath,CPUcores)
 
 
     profile.dict["STEP"] = "F"
