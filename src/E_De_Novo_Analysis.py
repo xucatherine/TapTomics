@@ -3,9 +3,49 @@
 #Depending on Karina's code, asjust this section of the code
    #We need to add a line of code for if the data is paired end or not
      # See on https://www.seq2fun.ca/case_study.xhtml for what it should look like
-
+import shutil
 import pandas as pd
 import os
+import subprocess
+import sys
+def move_and_rename_files(file_paths, output_directory):
+    # Iterate over each file path
+    for file_path in file_paths:
+        # Extract the directory and filename from the file path
+        directory, filename = os.path.split(file_path)
+        
+        # Generate new file paths for trimmed files
+        trimmed_F_path = os.path.join(directory, filename + "/trimmed_F.fastq.gz")
+    
+        # Get split the path
+        parts = file_path.split(os.path.sep)
+        # Extract the specific elements based on their position in the path
+        file_name_for = parts[-1] + "trimmed_F.fastq.gz" # File name
+        
+        # Determine the destination path for the file
+        destination_path = os.path.join(output_directory, file_name_for)
+        
+        # Copy the file to the new directory and rename it
+        shutil.copy(trimmed_F_path, destination_path)
+        
+        #Now same thing for the reverse
+        # Generate new file paths for trimmed files
+        trimmed_R_path = os.path.join(directory, filename + "/trimmed_R.fastq.gz")
+        # Extract the specific elements based on their position in the path
+        file_name_rev = parts[-1] + "trimmed_R.fastq.gz" # File name
+        # Determine the destination path for the file
+        destination_path = os.path.join(output_directory, file_name_rev)
+        # Copy the file to the new directory and rename it
+        shutil.copy(trimmed_R_path, destination_path)
+#write a fucntion to make it easier to read in a table of four columns instead a long list
+def print_strings_as_table(strings, num_columns=4):
+    for i, string in enumerate(strings):
+        print(f'{string:<20}', end='')  # Adjust 20 as needed for your string lengths
+        if (i + 1) % num_columns == 0:
+            print()  # Newline after every 4 items
+    if len(strings) % num_columns != 0:
+        print()  # Ensure ending on a newline if not divisible by num_columns
+
 
 def extract_info_from_paths(file_paths, output_direct_path):
     # Initialize an empty DataFrame with specified columns
@@ -77,12 +117,9 @@ def print_strings_as_table(strings, num_columns=4):
     if len(strings) % num_columns != 0:
         print()  # Ensure ending on a newline if not divisible by num_columns
 
-import subprocess
-import sys
-import os
-import shutil
 
-def run_seq2fun(output_dir,path_seq2fun, sample_table, tfmi_path, gene_map, working_dir, threads=8):
+
+def run_seq2fun(output_dir,References_path, path_seq2fun, sample_table, tfmi_path, gene_map, working_dir, threads=8):
     """
     Runs seq2fun with specified parameters.
 
@@ -121,25 +158,24 @@ def run_seq2fun(output_dir,path_seq2fun, sample_table, tfmi_path, gene_map, work
         candidate_output = os.path.join(working_directory, 'S2fid_abundance_table_all_samples.txt')
         new_path_output = os.path.join(working_directory, 'Seq2Fun_summary_all_samples.html')
         new_path_catherine = os.path.join(working_directory, 'S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt')
-        print(new_path_catherine)
        
         # Move the file
         shutil.copy(new_path_output, output_dir)
         
-        #Now before moving the fiecond file, remove the second column of teh table so that it is as required for the next steps
+        #Now before moving the fiecond file, remove the second column of the table so that it is as required for the next steps
         # Read the file
-        with open(new_path_catherine, 'r') as file:
+        with open(candidate_output, 'r') as file:
             lines = file.readlines()
 
         # Remove the second row (index 1 since Python lists are 0-indexed)
         if len(lines) > 1:  # Check if there's a second row to remove
             del lines[1]
 
-        # Write the modified content back to the file
+        # Write the modified content back to the new file that will be sent to catherine
         with open(new_path_catherine, 'w') as file:
             file.writelines(lines)
-        #Then move it to wherever Catherine wants it to be
-        shutil.copy(new_path_catherine, output_dir) #This will need to be changed to wherever Catherine wants me to send this
+        #Then move 
+        shutil.copy(new_path_catherine, References_path)
         print(f"Seq2Fun completed successfully. Output saved to {output_dir}")
     except subprocess.CalledProcessError as e:
         print("Seq2Fun encountered an error:", e, file=sys.stderr)
