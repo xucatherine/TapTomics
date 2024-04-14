@@ -365,12 +365,12 @@ if profile.dict["STEP"] == "D":
     genomefasta = str(input('Please enter the path to the genome fasta file: '))
     genomegtf = str(input('Please enter the path to the genome gtf file: '))
     CPUcores = str(input('How many cores would you like STAR to utilize? You can check how many cores your computer has or choose how many are available in the network where you are running it: '))
-    import D_referencemapping
+    import D_ReferenceBased_Assembly
     for SRR in SRR_paths:
         resultpath = SRR
         fastqfiles = [SRR+'/rawF.fastq', SRR+'/rawR.fastq']
         #initializing object of the class
-        g = D_referencemapping.referencemap()
+        g = D_ReferenceBased_Assembly.referencemap()
         g.star(STARpath, genomefolder,genomefasta, genomegtf, fastqfiles,resultpath,CPUcores)
 
 
