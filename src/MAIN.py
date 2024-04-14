@@ -34,14 +34,7 @@ folder: References
             metadata.csv
         [more var folders]
     file: database
-    folder: Seq2Fun
-        database
-        samples, forward and reverse
-        org.species
-        pathway.hierarchy
-        pathway_ko
-        pathway_kostats
-        ko.fullnames
+    S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt
     [...]
 
 folder: Results
@@ -374,6 +367,7 @@ if profile.dict["STEP"] == "D":
 # De novo - Seq2Fun #   !Unfinished!
 #####################
 if profile.dict["E"]:
+    from EF_Seq2FUN import extract_info_from_paths,run_seq2fun, move_and_rename_files, print_strings_as_table
     #First introduce the tool and ask user to download Seq2Fun
     print(" Welcome to the de novo branch of the pipeline! In order to proceed to the de novo analyis, a few steps are required on your end.")
     print("First please download to your working folder and make the Seq2Fun toolkit by following the directives on their github: https://github.com/xia-lab/Seq2Fun/tree/master ")
@@ -392,16 +386,8 @@ if profile.dict["E"]:
     print("Thanks! We can now move on to the next step! Hang tight we're almost there.")
     #The second step is to ask the user to decide which database he wants to select
     strings = ['algae', 'alveolates', 'amoebozoa', 'amphibians', 'animals', 'apicomplexans', 'arthropods', 'ascomycetes', 'basidiomycetes', 'birds', 'cnidarians', 'crustaceans', 'dothideomycetes', 'eudicots', 'euglenozoa', 'eurotiomycetes', 'fishes', 'flatworms', 'fungi', 'insects', 'leotiomycetes', 'mammals', 'mollusks', 'monocots', 'nematodes', 'plants', 'protists', 'reptiles', 'saccharomycetes', 'stramenopiles', 'vertebrates']
-    #write a fucntion to make it easier to read in a table of four columns instead a long list
-    def print_strings_as_table(strings, num_columns=4):
-        for i, string in enumerate(strings):
-            print(f'{string:<20}', end='')  # Adjust 20 as needed for your string lengths
-            if (i + 1) % num_columns == 0:
-                print()  # Newline after every 4 items
-        if len(strings) % num_columns != 0:
-            print()  # Ensure ending on a newline if not divisible by num_columns
-    print ("Please pick the database from the followign table that represents the better your sampled organism")
-    print_strings_as_table(strings)
+    print ("Please pick the database from the following table that represents the better your sampled organism")
+    print_strings_as_table(strings) #Function that prints the table
     DB = input("From the list above,please pick and write in lowercase the appropriate database for Seq2FUN tool to annalyse your reference free transcriptome: ")
     print ("Now please got to https://www.expressanalyst.ca/ExpressAnalyst/docs/Databases.xhtml under the - Without a reference Transcriptome - and download the database")
     print (" See Step 2 on https://github.com/xia-lab/Seq2Fun/tree/master for more info on how to do so")
@@ -418,42 +404,11 @@ if profile.dict["E"]:
                 user_input_2 = input ("")
     print("We're ready to go now, thanks for your time!")
     print("Preparing files for the analysis")
-    import shutil
-    def move_and_rename_files(file_paths, output_directory):
-        # Iterate over each file path
-        for file_path in file_paths:
-            # Extract the directory and filename from the file path
-            directory, filename = os.path.split(file_path)
-            
-            # Generate new file paths for trimmed files
-            trimmed_F_path = os.path.join(directory, filename + "/trimmed_F.fastq.gz")
-        
-            # Get split the path
-            parts = file_path.split(os.path.sep)
-            # Extract the specific elements based on their position in the path
-            file_name_for = parts[-1] + "trimmed_F.fastq.gz" # File name
-            
-            # Determine the destination path for the file
-            destination_path = os.path.join(output_directory, file_name_for)
-            
-            # Copy the file to the new directory and rename it
-            shutil.copy(trimmed_F_path, destination_path)
-            
-            #Now same thing for the reverse
-            # Generate new file paths for trimmed files
-            trimmed_R_path = os.path.join(directory, filename + "/trimmed_R.fastq.gz")
-            # Extract the specific elements based on their position in the path
-            file_name_rev = parts[-1] + "trimmed_R.fastq.gz" # File name
-            # Determine the destination path for the file
-            destination_path = os.path.join(output_directory, file_name_rev)
-            # Copy the file to the new directory and rename it
-            shutil.copy(trimmed_R_path, destination_path)
-            
     output_directory = pathSeq2Fun + "/database"
-    move_and_rename_files(SRR_paths, output_directory)
+    move_and_rename_files(SRR_paths, output_directory) #This fucntion will take all the inputs and place them in the same folder. It will aslo rename them.
     print("Building Seq2Fun input table")
 
-    #IS THAT HOW YOU DO IT?? 458, 469, 373-378 Seq2Fun 121-124 
+    #IS THAT HOW YOU DO IT?? 469, 373-378 Seq2Fun 121-124 
     extract_info_from_paths(SRR_paths, output_directory)
 
     print("Initiating De Novo analysis with Seq2Fun")
@@ -464,10 +419,10 @@ if profile.dict["E"]:
     working_directory = output_directory #This needs to be within the databse or wathever folder that has the data base as well as the sample (Maybe this si wrong and could simply be wathever we want it to be)
     threads = "8" #Should pretty much always saty 8
     seq2fun_path_real = pathSeq2Fun + "/bin/seq2fun" #Path to the seq2fun tool"
-    #CHECK WITH CATHERINE!
-    output_dir = "/Users/xaviersanterre/Test" #Path where you want the ouput file to be stored (maybe we could have both outputs at the same place and then catherine fetches it from there?)
+    output_dir = Results_path #Path where you want the ouput file to be stored
+    # References_path --> path where the abundance table will be for further use
 
-    run_seq2fun(output_dir,seq2fun_path, sample_table_path, tfmi_path, gene_map_path, working_directory, threads)
+    run_seq2fun(output_dir,References_path, seq2fun_path_real, sample_table_path, tfmi_path, gene_map_path, working_directory, threads)
 
     print("Finished annalysing your data")
     print("Feel free to look at the output files present in" + output_dir)
