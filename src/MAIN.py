@@ -10,14 +10,13 @@ folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
             folder: SRR (subfiles can be added later)
-                file: FASTA        (suggestion: raw.fasta)
                 file: rawF_fastq_data.txt
                 file: rawR_fastq_data.txt
                 file: rawF.fastq
                 file: rawR.fastq
-                file: trimmedF    (suggestion: trimmed.fastq)
-                file: trimmedR
-                file: BAM        (suggestion: aligned.bam)
+                file: trimmedF.fastq
+                file: trimmedR.fastq
+                file: aligned.bam
                 file: counts.csv
                 [...]
             [more SRR folders]
@@ -28,10 +27,10 @@ folder: References
     file: genome.gtf
     folder: compiled_counts
         folder: var_x
-            comp_counts.csv
-            norm_counts.csv
-            vst_counts.csv
-            metadata.csv
+            file: comp_counts.csv
+            file: norm_counts.csv
+            file: vst_counts.csv
+            file: metadata.csv
         [more var folders]
     file: database
     folder: Seq2Fun
@@ -83,16 +82,17 @@ profile = Bioinf_Profile()
 
 ###########################################################################
 # Important variables that are assigned values within the setup functions #
+###########################################################################
 # and that will be used in multiple places in MAIN.py:
 # These are listed here more to help remember which variables are meant to be global
 SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths = None, None, None, None, None
-VAR_names, COND_names, COND_quant = None, None, None
+VAR_names, COND_names, COND_quant, COND_corr = None, None, None, None
     # VAR_names = [var_1 name, var_2 name, ...]
     # COND_names = [[cond_1 name, cond_2 name, ...],  (var_1)
     #               [cond_1 name, cond_2 name, ...],  (var_2)
     #               ...]
-    # COND_quant = [[cond_1 quantifier, cond_2 quantifier, ...],  (var_1)
-    #               [cond_1 quantifier, cond_2 quantifier, ...],  (var_2)
+    # COND_corr = [[cond_1 correlation, cond_2 correlation, ...],  (var_1)
+    #               [cond_1 correlation, cond_2 correlation, ...],  (var_2)
     #               ...]
 
 def paths_setup():
@@ -172,7 +172,7 @@ def paths_setup():
                 SRR_paths.append(SRR_path)
 
 
-def samples_setup():
+def sample_setup():
     fasterq_dump_path = os.path.join(SRA_toolkit_path, "bin", "fasterq-dump") # path to the tool that will fetch fastQ files
 
     # Entering data into Samples folder - starting with number of variables to study
@@ -196,12 +196,26 @@ def samples_setup():
     ## initialize a dictionary here to which var and cond names can be stored?
     # Initialize global variables to store the variable names and conditions
 
-    # For each variable, make the right number of conditions folders and add data
+    # For each variable, make the right number of conditions folders and add data & ask for SRRs
+    SRRs_matrix = [] # for saving all of the SRRs
+            # [["SRR000001 SRR000002 SRR000003 ...", "SRR000004 SRR000005 SRR000006 ...", ...], (var_1)
+            #   ["SRR000011 SRR000012 SRR000013 ...", "SRR000014 SRR000015 SRR000016 ...", ...], (var_2)
+            #           (cond_1)                            (cond_2)                      (cond_n)
     for i in range(n):
+
         print("\n")
         var_path = Samples_path+"/var_"+str(i+1) # folders will be named var_1, var_2, var_3...
         os.makedirs(var_path, exist_ok=True)
-        ## ask user to name variable and store name in a dictionary?
+        ## ask user to name variable and store name in a list
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`")
+        print(f"Now collecting data for VARIABLE {i+1}.\n")
+        print("You may input a label for the variable (examples: light, oxidative stress, etc.).") 
+        print(f"If left empty, it will just show as var_{i+1} in the final outputs.")
+        var_name = input(f"Label for variable {i+1} (e.g. light): ")
+        if var_name.strip() == "": var_name = "var_" + str(i+1) # name variable var_i+1 if user left input empty
+        VAR_names.append(var_name) # 'masterlist' for the variable names
+
+        print('\n')
 
         # Adding conditions folders
         while True:
@@ -216,34 +230,67 @@ def samples_setup():
                     continue # continue looping
                 else: break # otherwise, the number is valid; break the loop
 
-        for j in range(k):
+        # For each condition, make folder
+        for j in range(k): 
             cond_path = var_path+"/cond_"+str(j+1) # folders will be named cond_1, cond_2, cond_3...
             os.makedirs(cond_path, exist_ok=True)
-            ## ask user to name condition and store name in a dictionary?
 
-        # Getting SRRs and downloading their FASTQ files, for each variable
-        SRRs_matrix = []
+        ## Ask for name & SRRs for every condition of the current variable ##
+        
+        SRRs_list_temp = [] # temporary list to save SRRs for current variable
+        cond_names_temp = [] # temporary list to store the condition names for the current variable 
+        cond_corr_temp = [] # temporary list to store the correlation types for the current variable
+                            # (these will later be appended to the SRRs_matrix, COND_names, and COND_corr)
+
         for cond in sorted(listdir_visible(var_path)): # for condition folder in parent folder var_n
-            print(f"\nList the SRR numbers belonging to variable {i+1}'s condition {cond.split('_')[-1]}, separated by spaces.")
+            print('\n')
+            cond_n = cond.split('_')[-1]
+            print(f"Now collecting data on VARIABLE {i+1}'s CONDITION {cond_n}.\n")
+            print("You may input a label for the condition (examples: high light or low light).")
+            print("If left empty, it will just be called cond_{cond_n} in the final outputs.")
+            cond_name = input(f"Label for variable {i+1}'s condition {cond_n}: ")
+            if cond_name.strip() == "": cond_name = "cond_" + str(cond_n) # name condition cond_n if input was left blank
+            cond_names_temp.append(cond_name) 
+
+            print("\nFor co-expression analysis, we will need to know whether this condition has a")
+            print("POSITIVE or NEGATIVE correlation with the production of the metabolite that you are studying.")
+            while True:
+                corr_type = input("Correlation for variable {i+1}'s condition {cond_n}: ")
+                if corr_type.lower() == "positive" or corr_type.lower() == "negative": break
+                else: print("Error: please input 'positive' or 'negative'")
+            cond_corr_temp.append(corr_type.lower())
+
+            print(f"\nList the SRR numbers belonging to variable {i+1}'s condition {cond_n}, separated by spaces.")
             print("ex: SRR12345678 SRR91011109 SRR87654321")
             SRRs = input("SRR numbers: ") #[user inputs SRRs]
-            SRRs_list = SRRs.split() # making list of SRRs
-            SRRs_matrix.append(SRRs_list)
-            
-        print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
+            SRRs_list_temp.append(SRRs) # add the SRRs to the list for current variable
+        
+        SRRs_matrix.append(SRRs_list_temp) # append 
 
-        # downloading the FASTQ files
+        COND_names.append(cond_names_temp) # add condition names to the 'masterlist'
+        COND_corr.append(cond_corr_temp)
+    
+    profile.VAR_names=VAR_names
+    profile.COND_names=COND_names
+    profile.COND_cor=COND_corr
+    
+    print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
+
+    # Downloading ALL of the FASTQ files
+    for i in range(n): # iterate through the variables
+        var_path = Samples_path+"/var_"+str(i+1)
         cond_list = sorted(listdir_visible(var_path))
-        for i in range(len(cond_list)): # for condition folder in parent folder var_n
+
+        for j in range(len(cond_list)): # for condition folder in parent folder var_n
             # Starting the downloads
-            print(f"\nDownloading SRRs for condition {i+1}")
-            cond_path = os.path.join(var_path, cond_list[i])
-            SRRs_list = SRRs_matrix[i] # SRRs inputted by the user for the current condition
+            print(f"\nDownloading SRRs for condition {j+1}")
+            cond_path = os.path.join(var_path, cond_list[j])
+            SRRs_list = SRRs_matrix[i][j].split() # SRRs inputted by the user for the current condition
             for SRR in SRRs_list: # loop through each SRR
                 SRR_path = os.path.join(cond_path, SRR) # new folder named as SRR number
                 os.makedirs(SRR_path, exist_ok=True)
 
-                # Check if the fasta files have already been downloaded in this folder
+                # Check if the fastq files have already been downloaded in this folder
                 if os.path.isfile(os.path.join(SRR_path, "rawF.fastq")) and os.path.isfile(os.path.join(SRR_path,"rawR.fastq")):
                     print(f"It looks like the fastq files for {SRR} have already been downloaded!")
                     print("Skipping to the next SRR...")
@@ -270,7 +317,8 @@ def samples_setup():
                                 os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
                 except subprocess.CalledProcessError as e:
                     print(f"An error occurred while downloading {SRR}: {e}") 
-            
+
+
     print("Thank you! Your transcriptomes are ready for processing.")
 
 paths_setup()
@@ -281,7 +329,7 @@ if profile.dict["STEP"] == "A":
     print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("\t~ A: Sample Setup and Download ~")
     print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    samples_setup()
+    sample_setup()
     profile.dict["STEP"] = "B"
     profile.update_profile()
 
@@ -373,8 +421,12 @@ if profile.dict["STEP"] == "D":
 #####################
 # De novo - Seq2Fun #   !Unfinished!
 #####################
-if profile.dict["E"]:
+if profile.dict["STEP"] == "E":
+    from EF_Seq2FUN import extract_info_from_paths, run_seq2fun
     #First introduce the tool and ask user to download Seq2Fun
+    print("\n\t~~~~~~~~~~~~~~~~~~~~~~")
+    print("\t~ E: De novo Analysis ~")
+    print("\t~~~~~~~~~~~~~~~~~~~~~~~\n")
     print(" Welcome to the de novo branch of the pipeline! In order to proceed to the de novo analyis, a few steps are required on your end.")
     print("First please download to your working folder and make the Seq2Fun toolkit by following the directives on their github: https://github.com/xia-lab/Seq2Fun/tree/master ")
     print ("I'll let you time to do that...")
@@ -473,6 +525,8 @@ if profile.dict["E"]:
     print("Feel free to look at the output files present in" + output_dir)
     profile.dict["F"]
     profile.update_profile()
+
+
 ####################################
 # Differential Expression Analysis #
 ####################################

@@ -1,5 +1,6 @@
 # This script contains mini extra functions
 import os
+import pandas as pd
 
 # Quick functions to access the var/cond under which the given SRR is stored
 def var(SRR_path):
@@ -31,6 +32,9 @@ class Bioinf_Profile():
             "RNA_STAR_PATH": "",
             "SEQ2FUN_PATH": ""
         }
+        self.VAR_names = []
+        self.COND_names = []
+        self.COND_corr = []
         return
     
     def read_profile(self):
@@ -51,4 +55,5 @@ class Bioinf_Profile():
         for key in self.dict:
             file.write(key + '=' + self.dict[key] + '\n')
         return
+
 
