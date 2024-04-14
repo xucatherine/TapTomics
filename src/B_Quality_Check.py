@@ -4,7 +4,7 @@
 
           
 # For this script, we need fastqc and multiqc installed
-# First function checks the quality of a FASTA file, so for several it must be implemented in a for-loop
+# First function checks the quality of a FASTQ file, so for several it must be implemented in a for-loop
 # Second function gives a visual report summarizing FastQCs for a given condition
 
 # Imports
