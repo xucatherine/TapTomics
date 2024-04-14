@@ -1,4 +1,3 @@
-
 '''Seq2FUN is an ultrafast, all-in-one functional profiling tool for RNA-seq data analysis for organisms without reference genomes.'''
 #The firsts thing to do is to generate a tabular with 4 colums, 1-name of the read, 2- forward read fatsq file, 3- reverse read fastq file (optional), 4- the condition
 #Depending on Karina's code, asjust this section of the code
@@ -6,10 +5,11 @@
      # See on https://www.seq2fun.ca/case_study.xhtml for what it should look like
 
 import pandas as pd
+import os
 
-def extract_info_from_paths(file_paths, directory_path):
+def extract_info_from_paths(file_paths, output_direct_path):
     # Initialize an empty DataFrame with specified columns
-    df = pd.DataFrame(columns=['Column1', 'Column2', 'Column3'])  # Adjust based on actual requirements
+    df = pd.DataFrame(columns=['Column1', 'Column2', 'Column3', 'Column4'])  # Adjust based on actual requirements
 
     # Iterate and add rows to the DataFrame
     for file_path in file_paths:
@@ -17,43 +17,54 @@ def extract_info_from_paths(file_paths, directory_path):
         parts = file_path.split(os.path.sep)
         
         # Extract the specific elements based on their position in the path
-        srr = parts[-2]  # SRR is the second last element
-        file_name = parts[-1]  # File name is the last element
+        srr = parts[-1]  # SRR is the second last element
+        file_name_for = parts[-1] + "trimmed_F.fastq.gz" # File name
+        file_name_rev = parts[-1] + "trimmed_R.fastq.gz" # File name
         p_cond = parts[-3]  # p_cond is the third last element
+
         
         # Create a dictionary for the row
         data_row = {
             'Column1': srr,
-            'Column2': file_name,
-            'Column3': p_cond,
+            'Column2': file_name_for,
+            'Column3': file_name_rev,
+            'Column4': p_cond
         }
         
         # Append the new row to the DataFrame
         df = df.append(data_row, ignore_index=True)
-     
+
+# Remove the first row of the DataFrame
+    df = df.iloc[0:]
+
     # Generate a unique file name to avoid overwriting existing files
-    base_filename = "sample"
-    filename = f"{base_filename}.txt"
-    output_path = os.path.join(directory_path, filename)
+    base_filename = "Sample"
+    csv_filename = f"{base_filename}.csv"
+    csv_output_path = os.path.join(output_direct_path, csv_filename)
+    txt_output_path = os.path.join(output_direct_path, f"{base_filename}.txt")
     counter = 1
-    while os.path.exists(output_path):
-        filename = f"{base_filename}_{counter}.txt"
-        output_path = os.path.join(directory_path, filename)
+    while os.path.exists(csv_output_path):
+        csv_filename = f"{base_filename}_{counter}.csv"
+        csv_output_path = os.path.join(output_direct_path, csv_filename)
+        txt_output_path = os.path.join(output_direct_path, f"{base_filename}_{counter}.txt")
         counter += 1
-    new_path = os.path.join(directory_path, 'sample.txt')
-    with open(new_path, 'r') as file:
-        lines = file.readlines()[1:]  # Read all lines except the first one
-
-    with open(new_path, 'w') as file:
-        file.writelines(lines)
     
-    print(f"File saved as {output_path}")
-     
+    # Write the DataFrame to a CSV file
+    df.to_csv(csv_output_path, index=False)  # Write DataFrame to CSV without row indices
+    
+    # Read the CSV file, replace commas with spaces, then save it as a text file
+    with open(csv_output_path, 'r') as csv_file:
+        lines = csv_file.read().replace(',', '\t').splitlines()[1:]  # Replace commas with spaces and remove the header line
 
+    with open(txt_output_path, 'w') as txt_file:
+        txt_file.write('\n'.join(lines))
+
+    print(f"File saved as {txt_output_path}")
+    
 # Example usage
-file_paths = ['path/to/file1', 'path/to/file2']  # Update with actual paths
-output_path = '/Users/xaviersanterre/Test/Seq2Fun/database'  # Specify your output path
-df = extract_info_from_paths(file_paths, output_path)
+#file_paths = ['path_that_user_decides/Samples/var_1/cond_1/SRR96', 'path_that_user_decides/Samples/var_2/cond_3/SRR97']  # Update with actual paths
+#output_direct_path = '/Users/xaviersanterre/Test/Seq2Fun/database'  # Specify your output path
+extract_info_from_paths(file_paths, output_direct_path)
 
 #The second step is to ask the user to decide which database he wants to select
 strings = ['algae', 'alveolates', 'amoebozoa', 'amphibians', 'animals', 'apicomplexans', 'arthropods', 'ascomycetes', 'basidiomycetes', 'birds', 'cnidarians', 'crustaceans', 'dothideomycetes', 'eudicots', 'euglenozoa', 'eurotiomycetes', 'fishes', 'flatworms', 'fungi', 'insects', 'leotiomycetes', 'mammals', 'mollusks', 'monocots', 'nematodes', 'plants', 'protists', 'reptiles', 'saccharomycetes', 'stramenopiles', 'vertebrates']
@@ -66,16 +77,6 @@ def print_strings_as_table(strings, num_columns=4):
     if len(strings) % num_columns != 0:
         print()  # Ensure ending on a newline if not divisible by num_columns
 
-# Ask the user to pick from the list of databases
-print ("please pick the database from the followign table that represents the better your sampled organism")
-print_strings_as_table(strings)
-print ("Now please got to https://www.expressanalyst.ca/ExpressAnalyst/docs/Databases.xhtml under the - Without a reference Transcriptome - and download the database")
-databaseinput = input("Input the database file:") #I need to check how Karina did to allow inputs and put them in the appropriate folders.
-
-DB = input("From the list above,please pick and write in lowercase the appropriate database for Seq2FUN tool to annalyse your reference free transcriptome (visit https://www.seq2fun.ca/database.xhtml for more information): ")
-#Now the database can be downloaded
-##The code is quite complex, so I was thinking maybe we could simply ask in the main file that the user inputs the database, just like he would input the genome if it was genome base.
-# Now that the table has been generated and the database selected, the function can be run
 import subprocess
 import sys
 import os
