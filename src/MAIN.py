@@ -9,11 +9,7 @@
 folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
-<<<<<<< HEAD
-            folder: SRR (subfiles can be added later)
-=======
             folder: SRR
->>>>>>> 78df3f1ed8e5ffce612984f5da479b793ef4133b
                 file: rawF_fastq_data.txt
                 file: rawR_fastq_data.txt
                 file: rawF.fastq
@@ -81,7 +77,7 @@ profile = Bioinf_Profile()
 # and that will be used in multiple places in MAIN.py:
 # These are listed here more to help remember which variables are meant to be global
 SRA_toolkit_path, Samples_path, References_path, Results_path, SRR_paths = None, None, None, None, None
-VAR_names, COND_names, COND_quant, COND_corr = None, None, None, None
+VAR_names, COND_names, COND_quant, COND_corr = [], [], [], []
     # VAR_names = [var_1 name, var_2 name, ...]
     # COND_names = [[cond_1 name, cond_2 name, ...],  (var_1)
     #               [cond_1 name, cond_2 name, ...],  (var_2)
@@ -174,8 +170,9 @@ def sample_setup():
     print("\nUsing differential analysis to decode metabolic pathways involves identifying \nexperimental variables under which expression of the phenotype of interest differs.")
     print("Through changing the variable's intensity, we create different experimental conditions \nunder which transcriptomes can be collected and compared against each other.")
     print("\tEx: In studying yeast respiration, temperature is a variable. Low, medium and high heat \n\twould correspond to 3 conditions, between which cellular respiration varies.")
-    print("\nHow many variables are you considering for your pathway? (minimum 1)")
-    print("For each variable, you will be asked to input the number of conditions studied, \nand for each condition, list the corresponding SRR accession numbers.\n")
+    print("\nFor each variable, you will be asked to input the number of conditions studied,")
+    print("and for each condition, to specify if it correlates positively or negatively with the phenotype of interest")
+    print("\tand to list the corresponding SRR accession numbers.\n")
     while True: # continue asking for input until they input a valid integer
         try:
             n = int(input("Number of variables studied (min. 1): ")) #[user inputs answer]
@@ -202,15 +199,15 @@ def sample_setup():
         var_path = Samples_path+"/var_"+str(i+1) # folders will be named var_1, var_2, var_3...
         os.makedirs(var_path, exist_ok=True)
         ## ask user to name variable and store name in a list
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print(f"Now collecting data for VARIABLE {i+1}.\n")
-        print("You may input a label for the variable (examples: light, oxidative stress, etc.).") 
-        print(f"If left empty, it will just show as var_{i+1} in the final outputs.")
-        var_name = input(f"Label for variable {i+1} (e.g. light): ")
+        print(f"You may input a label for variable {i+1} to be used in the final ouputs.") 
+        print(f"(examples: light, oxidative stress. If the field is left empty, we will just use var_{i+1}.)")
+        var_name = input(f"Label for variable {i+1}: ")
         if var_name.strip() == "": var_name = "var_" + str(i+1) # name variable var_i+1 if user left input empty
         VAR_names.append(var_name) # 'masterlist' for the variable names
 
-        print('\n')
+        print("")
 
         # Adding conditions folders
         while True:
@@ -240,17 +237,17 @@ def sample_setup():
         for cond in sorted(listdir_visible(var_path)): # for condition folder in parent folder var_n
             print('\n')
             cond_n = cond.split('_')[-1]
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print(f"Now collecting data on VARIABLE {i+1}'s CONDITION {cond_n}.\n")
-            print("You may input a label for the condition (examples: high light or low light).")
-            print("If left empty, it will just be called cond_{cond_n} in the final outputs.")
+            print("You may input a label for the condition to be used in the final outputs.")
+            print(f"(examples: high light or low light. If the field is left empty, we will just use cond_{cond_n}.")
             cond_name = input(f"Label for variable {i+1}'s condition {cond_n}: ")
             if cond_name.strip() == "": cond_name = "cond_" + str(cond_n) # name condition cond_n if input was left blank
             cond_names_temp.append(cond_name) 
-
-            print("\nFor co-expression analysis, we will need to know whether this condition has a")
-            print("POSITIVE or NEGATIVE correlation with the production of the metabolite that you are studying.")
+            
+            print("")
             while True:
-                corr_type = input("Correlation for variable {i+1}'s condition {cond_n}: ")
+                corr_type = input(f"Correlation for variable {i+1}'s condition {cond_n} (positive/negative): ")
                 if corr_type.lower() == "positive" or corr_type.lower() == "negative": break
                 else: print("Error: please input 'positive' or 'negative'")
             cond_corr_temp.append(corr_type.lower())
@@ -268,7 +265,10 @@ def sample_setup():
     profile.VAR_names=VAR_names
     profile.COND_names=COND_names
     profile.COND_cor=COND_corr
+
+    #### Implement a step that saves these variables^^ to the .bioinf-profile ####
     
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
 
     # Downloading ALL of the FASTQ files
@@ -278,7 +278,7 @@ def sample_setup():
 
         for j in range(len(cond_list)): # for condition folder in parent folder var_n
             # Starting the downloads
-            print(f"\nDownloading SRRs for condition {j+1}")
+            print(f"\nDownloading SRRs for VARIABLE {i+1} CONDITION {j+1}")
             cond_path = os.path.join(var_path, cond_list[j])
             SRRs_list = SRRs_matrix[i][j].split() # SRRs inputted by the user for the current condition
             for SRR in SRRs_list: # loop through each SRR
@@ -287,8 +287,7 @@ def sample_setup():
 
                 # Check if the fastq files have already been downloaded in this folder
                 if os.path.isfile(os.path.join(SRR_path, "rawF.fastq")) and os.path.isfile(os.path.join(SRR_path,"rawR.fastq")):
-                    print(f"It looks like the fastq files for {SRR} have already been downloaded!")
-                    print("Skipping to the next SRR...")
+                    print(f"It looks like the fastq files for {SRR} have already been downloaded! Skipping to the next SRR...")
                     continue
                 
                 print(f"Downloading {SRR}...")
@@ -323,7 +322,7 @@ paths_setup()
 if profile.dict["STEP"] == "A": 
     print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("\t~ A: Sample Setup and Download ~")
-    print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+    print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     sample_setup()
     profile.dict["STEP"] = "B"
     profile.update_profile()
@@ -377,6 +376,9 @@ if profile.dict["STEP"] == "B":
             for cond in listdir_visible(var_path): # for each condition in the var_n folder
                 cond_path = os.path.join(var_path, cond)
                 B_Quality_Check.run_MultiQC(cond_path)
+                #### MULTIQC saves the results in the current working directory automatically ###
+                ### maybe we move it to Results ####
+                ### also it currently tells the user to open the file in your browser, but nothing shows up###
     
     profile.dict["STEP"] = "C"
     profile.update_profile()
@@ -405,9 +407,9 @@ if profile.dict["STEP"] == "C":
 # Reference-based assembly/mapping #    !Unfinished!
 ####################################
 if profile.dict["STEP"] == "D":
-    print("\n\t~~~~~~~~~~~~~~")
-    print("\t~ D: Reference Mapping ~")
-    print("\t~~~~~~~~~~~~~~~\n")
+    print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`")
+    print("\t~ D: Reference-Based Assembly ~")
+    print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     print('For this section you must have RNA STAR installed and made on your local computer. You will also need the genome and annotations for your organism of interest downloaded in fasta and gtf files respectively. These can be found on NCBI.')
     #initializing the variables we will need
     STARpath = str(input('Please enter the path to RNA STAR: '))
@@ -431,13 +433,8 @@ if profile.dict["STEP"] == "D":
 #####################
 # De novo - Seq2Fun #   !Unfinished!
 #####################
-<<<<<<< HEAD
 if profile.dict["STEP"] == "E":
-    from EF_Seq2FUN import extract_info_from_paths, run_seq2fun
-=======
-if profile.dict["E"]:
-    from EF_Seq2FUN import extract_info_from_paths,run_seq2fun, move_and_rename_files, print_strings_as_table
->>>>>>> 78df3f1ed8e5ffce612984f5da479b793ef4133b
+    from E_De_Novo_Analysis import extract_info_from_paths,run_seq2fun, move_and_rename_files, print_strings_as_table
     #First introduce the tool and ask user to download Seq2Fun
     print("\n\t~~~~~~~~~~~~~~~~~~~~~~")
     print("\t~ E: De novo Analysis ~")
@@ -465,7 +462,7 @@ if profile.dict["E"]:
     print ("Now please got to https://www.expressanalyst.ca/ExpressAnalyst/docs/Databases.xhtml under the - Without a reference Transcriptome - and download the database")
     print (" See Step 2 on https://github.com/xia-lab/Seq2Fun/tree/master for more info on how to do so")
     print (" Oh yeah, and don't forget to issue the following command: tar -xzvf birds.tar.gz - as expained in Step 2")
-    print (" IMPORTANT: you MUST download the database to the Database folder within Seq2Fun. The path to it should look like: "+ pathSeq2Fun + "\Database" )
+    print (f" IMPORTANT: you MUST download the database to the Database folder within Seq2Fun. The path to it should look like: "+ pathSeq2Fun + "/Database" )
     print ("I'll let you time to do that...")
     user_input_2 = input ("Tell me when you are ready for the next steps by entering - ready - ")
     while True:
@@ -511,11 +508,11 @@ if profile.dict["STEP"] == "F":
     print("\t~ F: Differential Expression Analysis ~")
     print("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
-    from I_differential_exp import organize_DESeq2_genecounts, run_DESeq2_R
+    from F_Differential_Expression import organize_DESeq2_genecounts, run_DESeq2_R
 
     print("\nDifferential Expression Analysis will now be performed using DESeq2.")
-    print("For one variable, DESEq2 will compare pairs of conditions, using the gene counts from all of the conditions")
-    print("to calculate the 'degree' of differential expression for each gene.")
+    print("For each variable, DESeq2 will compare pairs of conditions, using the gene counts from all")
+    print("of the conditions to calculate the 'degree' of differential expression for each gene.")
     print("This degree of differential expression is represented by statistical numbers like log2-fold change and p-value.")
     print("For more information on how to interpret the DESeq2 results:")
     print("https://hbctraining.github.io/DGE_workshop_salmon_online/lessons/05b_wald_test_results.html#p-values")

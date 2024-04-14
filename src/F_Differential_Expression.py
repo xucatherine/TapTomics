@@ -50,7 +50,7 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     conditions_tracker = [] # for each sample in gene_counts_DFs_matrix, this list will store the corresponding condition at the same index
 
     condition_folders = sorted(os.listdir(var_folder_path))
-    for i in range(condition_folders):
+    for i in range(len(condition_folders)):
         # iterate through each condition
         condition_path = os.path.join(var_folder_path, condition_folders[i])
         for SRR in sorted(os.listdir(condition_path)):
