@@ -4,22 +4,20 @@
 # Welcome to the MAIN script for the Bioinformatic Pipeline! 
 # The user runs this script, and is guided through the steps of transcriptomic analysis
 
-# Folder Architecture (for reference, this is how downloaded data will be stored)
+# Folder Architecture - for reference; this is how downloaded data is stored
 '''
 folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
-            folder: SRR (subfiles can be added later)
-                file: FASTA        (suggestion: raw.fasta)
+            folder: SRR
                 file: rawF_fastq_data.txt
                 file: rawR_fastq_data.txt
                 file: rawF.fastq
                 file: rawR.fastq
-                file: trimmedF    (suggestion: trimmed.fastq)
-                file: trimmedR
-                file: BAM        (suggestion: aligned.bam)
+                file: trimmedF.fastq
+                file: trimmedR.fastq
+                file: aligned.bam
                 file: counts.csv
-                [...]
             [more SRR folders]
         [more cond folders]
     [more var folders]
@@ -35,7 +33,6 @@ folder: References
         [more var folders]
     file: database
     S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt
-    [...]
 
 folder: Results
     DESeq2
