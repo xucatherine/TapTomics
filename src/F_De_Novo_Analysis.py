@@ -1,15 +1,55 @@
-
 '''Seq2FUN is an ultrafast, all-in-one functional profiling tool for RNA-seq data analysis for organisms without reference genomes.'''
 #The firsts thing to do is to generate a tabular with 4 colums, 1-name of the read, 2- forward read fatsq file, 3- reverse read fastq file (optional), 4- the condition
 #Depending on Karina's code, asjust this section of the code
    #We need to add a line of code for if the data is paired end or not
      # See on https://www.seq2fun.ca/case_study.xhtml for what it should look like
-
+import shutil
 import pandas as pd
+import os
+import subprocess
+import sys
+def move_and_rename_files(file_paths, output_directory):
+    # Iterate over each file path
+    for file_path in file_paths:
+        # Extract the directory and filename from the file path
+        directory, filename = os.path.split(file_path)
+        
+        # Generate new file paths for trimmed files
+        trimmed_F_path = os.path.join(directory, filename + "/trimmed_F.fastq.gz")
+    
+        # Get split the path
+        parts = file_path.split(os.path.sep)
+        # Extract the specific elements based on their position in the path
+        file_name_for = parts[-1] + "trimmed_F.fastq.gz" # File name
+        
+        # Determine the destination path for the file
+        destination_path = os.path.join(output_directory, file_name_for)
+        
+        # Copy the file to the new directory and rename it
+        shutil.copy(trimmed_F_path, destination_path)
+        
+        #Now same thing for the reverse
+        # Generate new file paths for trimmed files
+        trimmed_R_path = os.path.join(directory, filename + "/trimmed_R.fastq.gz")
+        # Extract the specific elements based on their position in the path
+        file_name_rev = parts[-1] + "trimmed_R.fastq.gz" # File name
+        # Determine the destination path for the file
+        destination_path = os.path.join(output_directory, file_name_rev)
+        # Copy the file to the new directory and rename it
+        shutil.copy(trimmed_R_path, destination_path)
+#write a fucntion to make it easier to read in a table of four columns instead a long list
+def print_strings_as_table(strings, num_columns=4):
+    for i, string in enumerate(strings):
+        print(f'{string:<20}', end='')  # Adjust 20 as needed for your string lengths
+        if (i + 1) % num_columns == 0:
+            print()  # Newline after every 4 items
+    if len(strings) % num_columns != 0:
+        print()  # Ensure ending on a newline if not divisible by num_columns
 
-def extract_info_from_paths(file_paths, directory_path):
+
+def extract_info_from_paths(file_paths, output_direct_path):
     # Initialize an empty DataFrame with specified columns
-    df = pd.DataFrame(columns=['Column1', 'Column2', 'Column3'])  # Adjust based on actual requirements
+    df = pd.DataFrame(columns=['Column1', 'Column2', 'Column3', 'Column4'])  # Adjust based on actual requirements
 
     # Iterate and add rows to the DataFrame
     for file_path in file_paths:
@@ -17,43 +57,54 @@ def extract_info_from_paths(file_paths, directory_path):
         parts = file_path.split(os.path.sep)
         
         # Extract the specific elements based on their position in the path
-        srr = parts[-2]  # SRR is the second last element
-        file_name = parts[-1]  # File name is the last element
+        srr = parts[-1]  # SRR is the second last element
+        file_name_for = parts[-1] + "trimmed_F.fastq.gz" # File name
+        file_name_rev = parts[-1] + "trimmed_R.fastq.gz" # File name
         p_cond = parts[-3]  # p_cond is the third last element
+
         
         # Create a dictionary for the row
         data_row = {
             'Column1': srr,
-            'Column2': file_name,
-            'Column3': p_cond,
+            'Column2': file_name_for,
+            'Column3': file_name_rev,
+            'Column4': p_cond
         }
         
         # Append the new row to the DataFrame
         df = df.append(data_row, ignore_index=True)
-     
+
+# Remove the first row of the DataFrame
+    df = df.iloc[0:]
+
     # Generate a unique file name to avoid overwriting existing files
-    base_filename = "sample"
-    filename = f"{base_filename}.txt"
-    output_path = os.path.join(directory_path, filename)
+    base_filename = "Sample"
+    csv_filename = f"{base_filename}.csv"
+    csv_output_path = os.path.join(output_direct_path, csv_filename)
+    txt_output_path = os.path.join(output_direct_path, f"{base_filename}.txt")
     counter = 1
-    while os.path.exists(output_path):
-        filename = f"{base_filename}_{counter}.txt"
-        output_path = os.path.join(directory_path, filename)
+    while os.path.exists(csv_output_path):
+        csv_filename = f"{base_filename}_{counter}.csv"
+        csv_output_path = os.path.join(output_direct_path, csv_filename)
+        txt_output_path = os.path.join(output_direct_path, f"{base_filename}_{counter}.txt")
         counter += 1
-    new_path = os.path.join(directory_path, 'sample.txt')
-    with open(new_path, 'r') as file:
-        lines = file.readlines()[1:]  # Read all lines except the first one
-
-    with open(new_path, 'w') as file:
-        file.writelines(lines)
     
-    print(f"File saved as {output_path}")
-     
+    # Write the DataFrame to a CSV file
+    df.to_csv(csv_output_path, index=False)  # Write DataFrame to CSV without row indices
+    
+    # Read the CSV file, replace commas with spaces, then save it as a text file
+    with open(csv_output_path, 'r') as csv_file:
+        lines = csv_file.read().replace(',', '\t').splitlines()[1:]  # Replace commas with spaces and remove the header line
 
+    with open(txt_output_path, 'w') as txt_file:
+        txt_file.write('\n'.join(lines))
+
+    print(f"File saved as {txt_output_path}")
+    
 # Example usage
-file_paths = ['path/to/file1', 'path/to/file2']  # Update with actual paths
-output_path = '/Users/xaviersanterre/Test/Seq2Fun/database'  # Specify your output path
-df = extract_info_from_paths(file_paths, output_path)
+#file_paths = ['path_that_user_decides/Samples/var_1/cond_1/SRR96', 'path_that_user_decides/Samples/var_2/cond_3/SRR97']  # Update with actual paths
+#output_direct_path = '/Users/xaviersanterre/Test/Seq2Fun/database'  # Specify your output path
+extract_info_from_paths(file_paths, output_direct_path)
 
 #The second step is to ask the user to decide which database he wants to select
 strings = ['algae', 'alveolates', 'amoebozoa', 'amphibians', 'animals', 'apicomplexans', 'arthropods', 'ascomycetes', 'basidiomycetes', 'birds', 'cnidarians', 'crustaceans', 'dothideomycetes', 'eudicots', 'euglenozoa', 'eurotiomycetes', 'fishes', 'flatworms', 'fungi', 'insects', 'leotiomycetes', 'mammals', 'mollusks', 'monocots', 'nematodes', 'plants', 'protists', 'reptiles', 'saccharomycetes', 'stramenopiles', 'vertebrates']
@@ -66,22 +117,9 @@ def print_strings_as_table(strings, num_columns=4):
     if len(strings) % num_columns != 0:
         print()  # Ensure ending on a newline if not divisible by num_columns
 
-# Ask the user to pick from the list of databases
-print ("please pick the database from the followign table that represents the better your sampled organism")
-print_strings_as_table(strings)
-print ("Now please got to https://www.expressanalyst.ca/ExpressAnalyst/docs/Databases.xhtml under the - Without a reference Transcriptome - and download the database")
-databaseinput = input("Input the database file:") #I need to check how Karina did to allow inputs and put them in the appropriate folders.
 
-DB = input("From the list above,please pick and write in lowercase the appropriate database for Seq2FUN tool to annalyse your reference free transcriptome (visit https://www.seq2fun.ca/database.xhtml for more information): ")
-#Now the database can be downloaded
-##The code is quite complex, so I was thinking maybe we could simply ask in the main file that the user inputs the database, just like he would input the genome if it was genome base.
-# Now that the table has been generated and the database selected, the function can be run
-import subprocess
-import sys
-import os
-import shutil
 
-def run_seq2fun(output_dir,path_seq2fun, sample_table, tfmi_path, gene_map, working_dir, threads=8):
+def run_seq2fun(output_dir,References_path, path_seq2fun, sample_table, tfmi_path, gene_map, working_dir, threads=8):
     """
     Runs seq2fun with specified parameters.
 
@@ -120,25 +158,24 @@ def run_seq2fun(output_dir,path_seq2fun, sample_table, tfmi_path, gene_map, work
         candidate_output = os.path.join(working_directory, 'S2fid_abundance_table_all_samples.txt')
         new_path_output = os.path.join(working_directory, 'Seq2Fun_summary_all_samples.html')
         new_path_catherine = os.path.join(working_directory, 'S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt')
-        print(new_path_catherine)
        
         # Move the file
         shutil.copy(new_path_output, output_dir)
         
-        #Now before moving the fiecond file, remove the second column of teh table so that it is as required for the next steps
+        #Now before moving the fiecond file, remove the second column of the table so that it is as required for the next steps
         # Read the file
-        with open(new_path_catherine, 'r') as file:
+        with open(candidate_output, 'r') as file:
             lines = file.readlines()
 
         # Remove the second row (index 1 since Python lists are 0-indexed)
         if len(lines) > 1:  # Check if there's a second row to remove
             del lines[1]
 
-        # Write the modified content back to the file
+        # Write the modified content back to the new file that will be sent to catherine
         with open(new_path_catherine, 'w') as file:
             file.writelines(lines)
-        #Then move it to wherever Catherine wants it to be
-        shutil.copy(new_path_catherine, output_dir) #This will need to be changed to wherever Catherine wants me to send this
+        #Then move 
+        shutil.copy(new_path_catherine, References_path)
         print(f"Seq2Fun completed successfully. Output saved to {output_dir}")
     except subprocess.CalledProcessError as e:
         print("Seq2Fun encountered an error:", e, file=sys.stderr)
