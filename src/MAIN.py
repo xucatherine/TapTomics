@@ -10,14 +10,16 @@ folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
             folder: SRR
-                file: rawF_fastq_data.txt
-                file: rawR_fastq_data.txt
                 file: rawF.fastq
                 file: rawR.fastq
                 file: trimmedF.fastq
                 file: trimmedR.fastq
                 file: aligned.bam
                 file: counts.csv
+                folder: rawF_fastqc
+                    file: fastqc_data.txt
+                folder: rawR_fastqc
+                    file: fastqc_data.txt
             [more SRR folders]
         [more cond folders]
     [more var folders]
