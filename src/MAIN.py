@@ -23,6 +23,7 @@ folder: Samples
     [more var folders]
 
 folder: References
+    file: genome.fasta
     file: genome.gtf
     folder: compiled_counts
         folder: var_x
