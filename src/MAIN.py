@@ -30,7 +30,6 @@ folder: References
     folder: compiled_counts
         folder: var_x
             file: comp_counts.csv
-            file: norm_counts.csv
             file: vst_counts.csv
             file: metadata.csv
         [more var folders]
