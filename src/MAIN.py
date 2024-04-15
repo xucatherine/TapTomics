@@ -40,6 +40,7 @@ folder: Results
         file: DESeq2_results_var_1.csv
         file: DESeq2_results_var_2.csv
         [results file for each var_x]
+        file: DESeq2_plots.pdf
     folder: PyWGCNA
         folder: Resultsfigures
             file: module-traitRelationships.pdf
