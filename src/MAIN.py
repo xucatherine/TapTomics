@@ -33,14 +33,26 @@ folder: References
             file: metadata.csv
         [more var folders]
     file: database
-    S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt
 
 folder: Results
-    DESeq2
-        DESeq2_results_var_1.csv
-        DESeq2_results_var_2.csv
-        [results for each var_x]
-    [...]
+    folder: DESeq2
+        file: DESeq2_results_var_1.csv
+        file: DESeq2_results_var_2.csv
+        [results file for each var_x]
+    folder: PyWGCNA
+        folder: Resultsfigures
+            file: module-traitRelationships.pdf
+            file: summary_power
+            file: eigengenes.pdf
+            file: module_heatmap_eigengene_[module name].pdf
+                [module_heatmap_eigengene file for every module]
+            file: network.pdf
+        folder: Results
+            file: pathway_modules.csv
+            file: [module name]_genes.csv
+                [genes file for every pathway module]
+    folder: Seq2Fun
+        file: Seq2Fun_summary_all_samples.html
 '''
 
 # Imports
