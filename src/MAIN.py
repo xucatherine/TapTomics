@@ -52,7 +52,7 @@ import os
 import subprocess
     # we need this to call fastq-dump
 
-from A_minis import Bioinf_Profile, listdir_visible, name
+from A_minis import Bioinf_Profile, listdir_visible, name, remove_apple_quarantine
 
 print("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("\t~~  Welcome to Taptomics!  ~~")
@@ -133,9 +133,7 @@ def paths_setup():
 
         # On MacOS, the folder will automatically be flagged as coming from an unknown developper and this script will not be able to open the folder
         # check for the com.apple.quarantine flag and remove it if the folder has it
-        xattr_list=subprocess.run(["xattr", SRA_toolkit_path], capture_output=True, text=True).stdout.split('\n')
-        if "com.apple.quarantine" in xattr_list:
-            subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", SRA_toolkit_path])
+        remove_apple_quarantine(SRA_toolkit_path)
         
         # Setting up Samples, References and Results folders (within the user's inputted path)
         Samples_path = path+"/Samples"
@@ -269,7 +267,7 @@ def sample_setup():
     #### Implement a step that saves these variables^^ to the .bioinf-profile ####
     
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("\nWe will now download the FastQ files for each SRR. Each SRR can take ~5-10 minutes.")
+    print("\nWe will now download the FastQ files for each SRR. Each SRR will take several minutes.")
 
     # Downloading ALL of the FASTQ files
     for i in range(n): # iterate through the variables
@@ -346,9 +344,7 @@ if profile.dict["STEP"] == "B":
         fastqc_path = input("Please enter the path to the FastQC folder (e.g. User/..../FastQC): ") # path to previously downloaded FastQC, within user's computer
             ## save this path earlier when dowloading, or have user manually input it here
         # check for the com.apple.quarantine flag and remove it if the folder has it
-        xattr_list=subprocess.run(["xattr", fastqc_path], capture_output=True, text=True).stdout.split('\n')
-        if "com.apple.quarantine" in xattr_list:
-            subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", SRA_toolkit_path])
+        remove_apple_quarantine(fastqc_path)
 
         profile.dict["FASTQC_PATH"] = os.path.abspath(fastqc_path)
         profile.update_profile()

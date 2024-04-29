@@ -1,6 +1,7 @@
 # This script contains mini extra functions
 import os
 import pandas as pd
+import subprocess
 
 # Quick functions to access the var/cond under which the given SRR is stored
 def var(SRR_path):
@@ -57,3 +58,10 @@ class Bioinf_Profile():
         return
 
 
+def remove_apple_quarantine(tool_path):
+     # On MacOS, a folder downloaded from the internet will automatically be flagged as coming
+     # from an unknown developper and this script will not be able to open the folder
+    # check for the com.apple.quarantine flag and remove it if the folder has it
+    xattr_list=subprocess.run(["xattr", tool_path], capture_output=True, text=True).stdout.split('\n')
+    if "com.apple.quarantine" in xattr_list:
+        subprocess.run(["xattr", "-r", "-d","com.apple.quarantine", tool_path])

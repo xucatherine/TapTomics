@@ -228,10 +228,7 @@ class coexpressionanalysis:
 
     ####visualization for the POSTER
     #for module visualization
-    wgcna.CoexpressionModulePlot(modules=pathwaymodules, numGenes=10, numConnections=100, minTOM=0)
-    #for correlation visualization
-    wgcna.module_trait_relationships_heatmap(metadfs) # Requires a metadata entry but idk what the metadata is supposed to look like
-    
+    wgcna.CoexpressionModulePlot(modules=pathwaymodules, numGenes=10, numConnections=100, minTOM=0)    
   pass
 
 
