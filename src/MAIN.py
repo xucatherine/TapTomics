@@ -10,36 +10,51 @@ folder: Samples
     folder: var_x    # var_1, var_2, var_3, ...
         folder: cond_y    # cond_1, cond_2, cond_3,...
             folder: SRR
-                file: rawF_fastq_data.txt
-                file: rawR_fastq_data.txt
                 file: rawF.fastq
                 file: rawR.fastq
                 file: trimmedF.fastq
                 file: trimmedR.fastq
                 file: aligned.bam
                 file: counts.csv
+                folder: rawF_fastqc
+                    file: fastqc_data.txt
+                folder: rawR_fastqc
+                    file: fastqc_data.txt
             [more SRR folders]
         [more cond folders]
     [more var folders]
 
 folder: References
+    file: genome.fasta
     file: genome.gtf
     folder: compiled_counts
         folder: var_x
             file: comp_counts.csv
-            file: norm_counts.csv
             file: vst_counts.csv
             file: metadata.csv
         [more var folders]
     file: database
-    S2fid_abundance_table_all_samples_submit_2_expressanalyst.txt
 
 folder: Results
-    DESeq2
-        DESeq2_results_var_1.csv
-        DESeq2_results_var_2.csv
-        [results for each var_x]
-    [...]
+    folder: DESeq2
+        file: DESeq2_results_var_1.csv
+        file: DESeq2_results_var_2.csv
+        [results file for each var_x]
+        file: DESeq2_plots.pdf
+    folder: PyWGCNA
+        folder: Resultsfigures
+            file: module-traitRelationships.pdf
+            file: summary_power
+            file: eigengenes.pdf
+            file: module_heatmap_eigengene_[module name].pdf
+                [module_heatmap_eigengene file for every module]
+            file: network.pdf
+        folder: Results
+            file: pathway_modules.csv
+            file: [module name]_genes.csv
+                [genes file for every pathway module]
+    folder: Seq2Fun
+        file: Seq2Fun_summary_all_samples.html
 '''
 
 # Imports
