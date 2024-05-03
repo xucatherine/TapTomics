@@ -8,7 +8,7 @@ import subprocess
 #from rpy2.robjects import pandas2ri
 #import rpy2.robjects.packages as rpackages
 
-def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./"):
+def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./", count_type="gene"):
     '''This function compiles individual gene count files into one table 
     and creates a metadata table that records the condition associated with each sample/replicate.
     These two tables are required inputs for DESeq2, a function that compares the gene counts 
@@ -24,7 +24,8 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
             |   fasta.fasta
                 fasta.fastq
                 aligned.bam
-                counts.csv
+                genecounts.tab
+                transcriptcounts.tab
             SRR000001
             |   ...
                 
@@ -34,6 +35,16 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     condition_labels should give a list of the names for each condition, in the order that they appear in the folder system. 
     If no input, the default will be to just call them 'condition 1', 'condition 2', etc.
     '''
+    ### Set up file name that will be used (genecounts or transcriptcounts)
+    if count_type == "gene" or count_type == "transcript":
+        count_file_name = count_type + "counts.tab"
+    else:
+        exception_message = ["Incorrect count_type value for function organize_DESeq2_genecounts.\n",
+                             "You have inputted count_type=", count_type, "\n",
+                             "Expected values: 'gene' or 'transcript'"]
+        raise Exception(''.join(exception_message))
+        
+
     ### If no condition labels were given, set up default condition labels ###
     if condition_labels == -1:
         condition_labels = []
@@ -55,7 +66,7 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
         condition_path = os.path.join(var_folder_path, condition_folders[i])
         for SRR in sorted(os.listdir(condition_path)):
             # iterate through each SRR
-            counts_path = os.path.join(condition_path, SRR, "counts.csv")
+            counts_path = os.path.join(condition_path, SRR, count_file_name)
             dataframe = pd.read_csv(counts_path, index_col=0, sep='\t', header=None)
                 # extract the gene-count file as a pandas dataframe
                 # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes

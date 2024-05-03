@@ -1,4 +1,3 @@
-
 ## Missing: ask the user for brief description each variable and condition, and store entries in a dictionary
 
 # Welcome to the MAIN script for the Bioinformatic Pipeline! 
@@ -15,7 +14,8 @@ folder: Samples
                 file: trimmedF.fastq
                 file: trimmedR.fastq
                 file: aligned.bam
-                file: counts.csv
+                file: genecounts.tab
+                file: transcriptcounts.tab
                 folder: rawF_fastqc
                     file: fastqc_data.txt
                 folder: rawR_fastqc
@@ -32,6 +32,11 @@ folder: References
             file: comp_counts.csv
             file: vst_counts.csv
             file: metadata.csv
+        [more var folders]
+    folder: STAR_log
+        folder: var_x
+            SRR000001_Log.final.out
+            [log file per SRR]
         [more var folders]
     file: database
 
@@ -210,13 +215,13 @@ def sample_setup():
 
         print("\n")
         var_path = Samples_path+"/var_"+str(i+1) # folders will be named var_1, var_2, var_3...
-        os.makedirs(var_path, exist_ok=True)
+        os.makedirs(var_path, exist_ok=True) # create var_1, var_2, ... folders in "Samples"
         ## ask user to name variable and store name in a list
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print(f"Now collecting data for VARIABLE {i+1}.\n")
         print(f"You may input a label for variable {i+1} to be used in the final ouputs.") 
         print(f"(examples: light, oxidative stress. If the field is left empty, we will just use var_{i+1}.)")
-        var_name = input(f"Label for variable {i+1}: ")
+        var_name = input(f"Label: ")
         if var_name.strip() == "": var_name = "var_" + str(i+1) # name variable var_i+1 if user left input empty
         VAR_names.append(var_name) # 'masterlist' for the variable names
 
@@ -253,14 +258,14 @@ def sample_setup():
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print(f"Now collecting data on VARIABLE {i+1}'s CONDITION {cond_n}.\n")
             print("You may input a label for the condition to be used in the final outputs.")
-            print(f"(examples: high light or low light. If the field is left empty, we will just use cond_{cond_n}.")
-            cond_name = input(f"Label for variable {i+1}'s condition {cond_n}: ")
+            print(f"(examples: high light or low light. If the field is left empty, we will just use cond_{cond_n}.)")
+            cond_name = input(f"Label: ")
             if cond_name.strip() == "": cond_name = "cond_" + str(cond_n) # name condition cond_n if input was left blank
             cond_names_temp.append(cond_name) 
             
             print("")
             while True:
-                corr_type = input(f"Correlation for variable {i+1}'s condition {cond_n} (positive/negative): ")
+                corr_type = input(f"Correlation with phenotype of interest (positive/negative): ")
                 if corr_type.lower() == "positive" or corr_type.lower() == "negative": break
                 else: print("Error: please input 'positive' or 'negative'")
             cond_corr_temp.append(corr_type.lower())
@@ -305,25 +310,29 @@ def sample_setup():
                 
                 print(f"Downloading {SRR}...")
                 # retrieve FASTQ file using SRR Toolkit
-                try:
-                    subprocess.run([fasterq_dump_path, SRR, "--outdir", SRR_path, "--skip-technical", "--split-3"])
-                        # this will create two, or three files:
-                            # SRR000000_1.fastq ;  side 1 of paired reads
-                            # SRR000000_2.fastq ;  side 2 of paired reads
-                            # SRR000000_x.fastq ;  any unpaired/unmatched reads
-                    # renaming the files to generic name
-                    for file in os.listdir(SRR_path):
-                        if file.startswith(SRR):
-                            if file.endswith("_1.fastq"):
-                                new_name = "rawF.fastq"
-                                os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
-                            elif file.endswith("_2.fastq"):
-                                new_name = "rawR.fastq"
-                                os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
-                            else:
-                                os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
-                except subprocess.CalledProcessError as e:
-                    print(f"An error occurred while downloading {SRR}: {e}") 
+                while True:
+                    try:
+                        subprocess.run([fasterq_dump_path, SRR, "--outdir", SRR_path, "--skip-technical", "--split-3"])
+                            # this will create two, or three files:
+                                # SRR000000_1.fastq ;  side 1 of paired reads
+                                # SRR000000_2.fastq ;  side 2 of paired reads
+                                # SRR000000_x.fastq ;  any unpaired/unmatched reads
+                        # renaming the files to generic name
+                        for file in os.listdir(SRR_path):
+                            if file.startswith(SRR):
+                                if file.endswith("_1.fastq"):
+                                    new_name = "rawF.fastq"
+                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                                elif file.endswith("_2.fastq"):
+                                    new_name = "rawR.fastq"
+                                    os.rename(os.path.join(SRR_path, file), os.path.join(SRR_path, new_name))
+                                else:
+                                    os.remove(os.path.join(SRR_path, file)) # Delete any extra files that aren't the reverse or forward reads
+                    except subprocess.CalledProcessError as e:
+                        print(f"An error occurred while downloading {SRR}: {e}")
+                        answer = input("Would you like to retry [r] the download or continue [c] without downloading this SRR? [r/c]:")
+                        if answer == "continue": break
+                    else: break
 
 
     print("Thank you! Your transcriptomes are ready for processing.")
@@ -397,7 +406,6 @@ if profile.dict["STEP"] == "B":
 #################################################
 # Trimming SRR data using Quality Check results #   !Unfinished!
 #################################################
-
 if profile.dict["STEP"] == "C":
     print("\n\t~~~~~~~~~~~~~~")
     print("\t~ C: Trimming ~")
@@ -431,7 +439,7 @@ if profile.dict["STEP"] == "D":
     import D_ReferenceBased_Assembly
     for SRR in SRR_paths:
         resultpath = SRR
-        fastqfiles = [SRR+'/rawF.fastq', SRR+'/rawR.fastq']
+        fastqfiles = [SRR+'/trimmedF.fastq', SRR+'/trimmedR.fastq']
         #initializing object of the class
         g = D_ReferenceBased_Assembly.referencemap()
         g.star(STARpath, genomefolder,genomefasta, genomegtf, fastqfiles,resultpath,CPUcores)
@@ -530,11 +538,11 @@ if profile.dict["STEP"] == "F":
     print("For more information on how DESeq2 works:")
     print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")
 
-    # make DESeq2 results folder
+    # make DESeq2 results folder (.../Results/DESeq2)
     deseq2_results_folder = os.path.join(Results_path, "DESeq2")
     if not os.path.exists(deseq2_results_folder): os.mkdir(deseq2_results_folder) # make the folder if it doesn't exist already
 
-    # make compiled_counts folder
+    # make compiled_counts folder (.../References)
     compiled_counts_path = os.path.join(References_path, "compiled_counts")
     if not os.path.exists(compiled_counts_path): os.mkdir(compiled_counts_path)
         
