@@ -113,9 +113,9 @@ def paths_setup():
         profile.read_profile()
 
         print("It looks likes you ran the bioinformatic pipeline previously")
-        print(f"and reached Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}")
+        print(f'and reached Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}')
         print("Would you like to...")
-        print(f"\t (1) continue the pipeline starting from Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}?")
+        print(f'\t (1) continue the pipeline starting from Step {profile.dict["STEP"]}: {Steps[profile.dict["STEP"]]}?')
         print("\t (2) or rerun the pipeline from the start?")
         m = input("Please enter 1 or 2: ")
         if m == '1': 
@@ -538,11 +538,11 @@ if profile.dict["STEP"] == "F":
     print("For more information on how DESeq2 works:")
     print("https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")
 
-    # make DESeq2 results folder (.../Results/DESeq2)
+    # make DESeq2 results folder (.../Results/DESeq2/)
     deseq2_results_folder = os.path.join(Results_path, "DESeq2")
     if not os.path.exists(deseq2_results_folder): os.mkdir(deseq2_results_folder) # make the folder if it doesn't exist already
 
-    # make compiled_counts folder (.../References)
+    # make compiled_counts folder (.../References/compiled_counts/)
     compiled_counts_path = os.path.join(References_path, "compiled_counts")
     if not os.path.exists(compiled_counts_path): os.mkdir(compiled_counts_path)
         

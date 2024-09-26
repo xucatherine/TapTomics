@@ -5,7 +5,7 @@ import subprocess
 import os
 import shutil
 
-class referencemap:
+class STARobject:
 
     def __init__(self, STARpath, genomepath, genomefasta, genomegtf, CPUcores):
         self.STARpath = STARpath
@@ -22,8 +22,8 @@ class referencemap:
             #creating genome index
             self.STARpath,  # the full path to STAR if it's not in your PATH
             '--runThreadN', self.CPUcores,  # Number of threads - number of available cores on the server node
-            '--runMode', 'genomeGenerate', #directs STAR to run
-            '--genomeDir', self.genomepath,  # Path to the genome directory
+            '--runMode', 'genomeGenerate', #directs STAR to generate indices
+            '--genomeDir', self.genomepath,  # Path where indices will be stored
             '--genomeFastaFiles', self.genomefasta, 
             '--sjdbGTFfile', self.genomegtf, #path to annotations GTF file
             '--outFileNamePrefix', self.genomepath,
@@ -41,7 +41,7 @@ class referencemap:
 
         # setup the resultspath properly (assuming the person inputted a path to a folder)
         resultpath = os.path.join(resultpath, resultprefix)
-        resultpath = resultpath + "_"
+        resultpath = resultpath + "."
             # this will be the input for --outoutFileNamePrefix
             # STAR will use this as a prefix for all of its file outputs
         
@@ -141,13 +141,13 @@ class referencemap:
     def organize_star_files(self, star_result_folder, prefix, SRRfolder):
         '''
         STAR files that will be kept, renamed/moved, or deleted:
-            SRR00001_Log.final.out - keep
-            SRR00001_SJ.out.tab - keep? (records splice junctions)
-            SRR00001_Aligned.toTranscriptome.out.bam (optional) - keep
-            SRR00001_Log.out - delete
-            SRR00001_Log.progress.out - delete
-            SRR00001_Aligned.out.bam - move to Samples/var_x/cond_x/SRRXXXXX/aligned.bam
-            SRR00001_ReadsPerGene.out.tab - move to Samples/var_x/cond_x/SRRXXXXX/genecounts.tab
+            SRR00001.Log.final.out - keep
+            SRR00001.SJ.out.tab - keep? (records splice junctions)
+            SRR00001.Aligned.toTranscriptome.out.bam (optional) - keep
+            SRR00001.Log.out - delete
+            SRR00001.Log.progress.out - delete
+            SRR00001.Aligned.out.bam - move to Samples/var_x/cond_x/SRRXXXXX/aligned.bam
+            SRR00001.ReadsPerGene.out.tab - move to Samples/var_x/cond_x/SRRXXXXX/genecounts.tab
         
         star_result_folder: .../References/STAR_log
         SRRfolder: .../Samples/var_x/cond_x/SRRXXXXXX
@@ -155,14 +155,14 @@ class referencemap:
 
         delete_names = ["Log.out", "Log.progress.out"]
         for i in range(len(delete_names)):
-            path = os.path.join(star_result_folder, prefix + "_" + delete_names[i])
+            path = os.path.join(star_result_folder, prefix + "." + delete_names[i])
             if os.path.exists(path):
                  os.remove(path)
 
         move_names = ["Aligned.out.bam", "ReadsPerGene.out.tab"]
         new_names = ["aligned.bam", "genecounts.tab"]
         for i in range(len(move_names)):
-            start_path = os.path.join(star_result_folder, prefix + "_" + move_names[i])
+            start_path = os.path.join(star_result_folder, prefix + "." + move_names[i])
             end_path = os.path.join(SRRfolder, new_names[i])
             shutil.move(start_path, end_path)
         
@@ -207,10 +207,45 @@ os.makedirs(starLog_dir, exist_ok=True)
 
 #the execution should be in a for loop so that an assembly is made for each sample
 #initializing object of the class
-g = referencemap(STARpath, genomedir, genomefasta, genomegtf, CPUcores)
+'''g = STARobject(STARpath, genomedir, genomefasta, genomegtf, CPUcores)
 g.star_index() #create the genome indices for STAR
 
 for i in range(len(resultprefixes)):
     g.star_map(fastqfiles_matrix[i], starLog_dir, resultprefixes[i])
     m = input("I am done running STAR, would you like to continue? (type any key)")
-    g.organize_star_files(starLog_dir, resultprefixes[i], SRR_folders[i])
+    g.organize_star_files(starLog_dir, resultprefixes[i], SRR_folders[i])'''
+
+
+### Map to trasncriptome - not working for some reason - I just ran RSEM command with STAR instead
+transcript_dir = "/Users/xcatherine/Desktop/BIEN470/bioinformatic-pipeline/zimo-yeast/References/GCF_000146045.2/transcript-indices"
+transcript_fasta = "/Users/xcatherine/Desktop/BIEN470/bioinformatic-pipeline/zimo-yeast/References/rsem/yeast.idx.fa"
+star_command_index = [
+            #creating genome index
+            'star',  # the full path to STAR if it's not in your PATH
+            '--runThreadN', CPUcores,  # Number of threads - number of available cores on the server node
+            '--runMode', 'genomeGenerate', #directs STAR to generate indices
+            '--genomeDir', transcript_dir,  # Path to where indices are stored
+            '--genomeFastaFiles', transcript_fasta, 
+            '--sjdbGTFfile', genomegtf, #path to annotations GTF file
+            '--outFileNamePrefix', transcript_dir,
+        ]
+
+subprocess.run(star_command_index)
+starLog_transcript="/Users/xcatherine/Desktop/BIEN470/bioinformatic-pipeline/zimo-yeast/References/STAR_Log_transcript"
+
+for i in range(len(resultprefixes)):
+    resultpath = os.path.join(starLog_transcript, resultprefixes[i])
+    resultpath = resultpath + "."
+    star_command_mapping = [
+            #running a mapping job
+            'star',  # the full path to STAR if it's not in your PATH
+            '--runThreadN', CPUcores,
+            '--genomeDir', transcript_dir, # where indices are stored
+            '--readFilesIn', fastqfiles_matrix[i][0], fastqfiles_matrix[i][1], #note, fastqpaths is a list including the name and path of read1 and read2 for paired end 
+            '--outFileNamePrefix', resultpath,
+            '--outSAMtype', 'BAM', 'Unsorted' #output in BAM format
+        ]
+    subprocess.run(star_command_mapping)
+
+    
+

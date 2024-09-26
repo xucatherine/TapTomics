@@ -8,7 +8,7 @@ import subprocess
 #from rpy2.robjects import pandas2ri
 #import rpy2.robjects.packages as rpackages
 
-def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./", count_type="gene"):
+def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_folder="./", count_type="gene", count_col="1"):
     '''This function compiles individual gene count files into one table 
     and creates a metadata table that records the condition associated with each sample/replicate.
     These two tables are required inputs for DESeq2, a function that compares the gene counts 
@@ -34,7 +34,19 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     
     condition_labels should give a list of the names for each condition, in the order that they appear in the folder system. 
     If no input, the default will be to just call them 'condition 1', 'condition 2', etc.
+
+    count_col tells the function which column the gene counts are in/which column of gene counts you want to use
+        e.g. STAR outputs gene counts in the following format:
+                N_unmapped	    477368	477368	477368
+                N_multimapping	833156	833156	833156
+                N_noFeature	    274103	20175791	555611
+                N_ambiguous	    204717	5556	64921
+                YAL068C	    0	0	0
+                YAL067W-A	0	0	0
+                YAL067C	    760	6	754
+                col 1 is unstranded counts, col 2 = forward stranded, col 3 = reverse stranded
     '''
+
     ### Set up file name that will be used (genecounts or transcriptcounts)
     if count_type == "gene" or count_type == "transcript":
         count_file_name = count_type + "counts.tab"
@@ -63,13 +75,27 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     condition_folders = sorted(os.listdir(var_folder_path))
     for i in range(len(condition_folders)):
         # iterate through each condition
+        # skip if starts with .
+        if condition_folders[i].startswith("."): continue
         condition_path = os.path.join(var_folder_path, condition_folders[i])
         for SRR in sorted(os.listdir(condition_path)):
+            if SRR.startswith("."): continue
             # iterate through each SRR
             counts_path = os.path.join(condition_path, SRR, count_file_name)
             dataframe = pd.read_csv(counts_path, index_col=0, sep='\t', header=None)
                 # extract the gene-count file as a pandas dataframe
                 # index_col=0 tells the function to use the first column (containing gene ID) as the labels/indexes
+            
+            if len(dataframe.columns) > 1: # if more than 1 column, keep only one of the columns
+                dataframe = dataframe[count_col] 
+            
+            # Check if the first 4 rows match the 4 summary rows at the top of STAR genecount files
+            dataframe_4rows_labels = dataframe.iloc[:4].index # extract labels of the first 4 rows of the dataframe
+            star_summary_labels = {'N_unmapped', 'N_multimapping', 'N_noFeature', 'N_ambiguous'} # STAR's 4 summary labels as an unordered set
+            if set(dataframe_4rows_labels) == star_summary_labels: 
+                # if the first 4 rows do match the STAR summary rows, remove these 4 rows
+                dataframe = dataframe.drop(star_summary_labels)
+
             gene_counts_DFs_list += [dataframe] # Append dataframe to list
 
             # use the SRR directory name as sample label
@@ -97,35 +123,39 @@ def organize_DESeq2_genecounts(var_folder_path, condition_labels=-1, results_fol
     print(counts_DF)
 
     # Write the new gene-counts and metada dataframes to csv files
-    gene_counts_path = results_folder + "comp_counts.csv"
-    gene_counts_metadata = results_folder + "metadata.csv"
+    gene_counts_path = os.path.join(results_folder, "comp_counts.csv")
+    gene_counts_metadata = os.path.join(results_folder, "metadata.csv")
     counts_DF.to_csv(gene_counts_path)
     metadata_DF.to_csv(gene_counts_metadata, index=False)
 
     return
 
 
-def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, normalize="FALSE", transform="FALSE", plots="FALSE"):
-    
+def run_DESeq2_R(gene_counts_path, metadata_path, result_path, counts_folder, DESeq="TRUE", normalize="FALSE", transform="FALSE", fpkm="FALSE", plots="FALSE"):
     ## I am unable to install rpy2 on my device. 
         # As a work-around, I wrote a function in R that runs DESeq2. 
         # This python run_DESeq2_R() function will write an extra line in my R script 
         # to call my DESeq2 function using the inputs from run_DESeq2_R.
         # Once the R script is done running, the function call line/last line will be deleted.
     print("function is running")
-    my_script = open("R_scripts/run_deseq2.R", "a")
+    R_script_path = "src/R_scripts/run_deseq2.R"
+    my_script = open(R_script_path, "a")
+    DESeq2_command = ('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_path 
+                        + '","' + counts_folder + '",DESeq=' + DESeq + ',normalize=' + normalize + ',transform=' + transform 
+                        + ',fpkm=' + fpkm + ',plots=' + plots + ')')
+    print(DESeq2_command)
     my_script.write('run_DESeq2("' + gene_counts_path + '","' + metadata_path + '","' + result_path + '","' + counts_folder 
-                     + '",normalize=' + normalize + ',transform=' + transform + ',plots=' + plots + ')')
+                     + '",DESeq=' + DESeq + ',normalize=' + normalize + ',transform=' + transform + ',fpkm=' + fpkm + ',plots=' + plots + ')')
     my_script.close() #close the file to free up memory
   
     # Run the R script
-    subprocess.run(['Rscript', 'R_scripts/run_deseq2.R'])
+    subprocess.run(['Rscript', R_script_path])
     
     # Delete the last line of/function call from the R script
-    my_script1 = open("R_scripts/run_deseq2.R", "r")
+    my_script1 = open(R_script_path, "r")
     lines = my_script1.readlines() # saves all of the lines in the script
     my_script1.close()
-    my_script1 = open("R_scripts/run_deseq2.R", "w") 
+    my_script1 = open(R_script_path, "w") 
     my_script1.write(''.join(lines[:-1])) # rewrite all of the lines except the last line
     my_script1.close()
 

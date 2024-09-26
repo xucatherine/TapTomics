@@ -1,5 +1,5 @@
 
-run_DESeq2 <- function(gene_counts_path, metadata_path, result_path, counts_folder, normalize=FALSE, transform=FALSE, plots=FALSE) {
+run_DESeq2 <- function(gene_counts_path, metadata_path, result_path, counts_folder, DESeq=TRUE, normalize=FALSE, transform=FALSE, fpkm=FALSE, plots=FALSE) {
     print("R script is running")
     ### Install packages and load libraries ###
     
@@ -21,25 +21,29 @@ run_DESeq2 <- function(gene_counts_path, metadata_path, result_path, counts_fold
     ### "Download" the gene count data ###
     genecount_data = read.csv(gene_counts_path, header = TRUE, sep=",")
     metadata = read.csv(metadata_path, header = TRUE, sep=",",)
-
-    ### Create DESeqDataSet Object
-    dds <- DESeqDataSetFromMatrix(countData=genecount_data, colData=metadata, design=~condition, tidy=TRUE)
+    
+    ### Run DESeq2 ###
+    if(DESeq){
+        ### Create DESeqDataSet Object
+        dds <- DESeqDataSetFromMatrix(countData=genecount_data, colData=metadata, design=~condition, tidy=TRUE)
         # Design specifies how the counts from each gene depend on the variables in the metadata.
             # -> we care mainly about the condition associated with each gene.
             #tidy=TRUE argument tells DESeq2 to use first column of countData as row names
-    
+        dds <- DESeq(dds)
+        res <- results(dds)
+            ## Note:by default, the result function filters for p-adj<0.1
+        
+        summary(res) # prints summary of DESeq2 results
 
-    ### Run DESeq2 ###
-    dds <- DESeq(dds)
-    res <- results(dds)
-        ## Note:by default, the result function filters for p-adj<0.1
-    
-    summary(res) # prints summary of DESeq2 results
-
-    # Write the results to a csv file
-    tidy_res = results(dds, tidy=TRUE) #create a 'tidy' form of results for writing to csv
-    tidy_res <- tidy_res[order(tidy_res$padj),] # sort the results by adjusted p-value (lower p-value = )
-    write.csv(tidy_res, result_path, row.names=FALSE) # write this table to a csv file
+        # Write the results to a csv file
+        tidy_res = results(dds, tidy=TRUE) #create a 'tidy' form of results for writing to csv
+        tidy_res <- tidy_res[order(tidy_res$padj),] # sort the results by adjusted p-value (lower p-value = )
+        write.csv(tidy_res, result_path, row.names=FALSE) # write this table to a csv file
+    }
+    else{
+        dds <- DESeqDataSetFromMatrix(countData=genecount_data, colData=metadata, design=~1, tidy=TRUE)
+        dds <- estimateSizeFactors(dds)
+    }
 
     ### Normalize and Transform for Correlation analysis (optional) ###
     if(normalize){
@@ -53,6 +57,11 @@ run_DESeq2 <- function(gene_counts_path, metadata_path, result_path, counts_fold
         # Extract the matrix of transformed values
         vst_matrix <- assay(vst_data)
         write.csv(vst_matrix, paste(counts_folder, "/vst_counts.csv",sep=""))
+    }
+    if(fpkm){
+        fpkm_data <- fpkm(dds, robust=TRUE)
+            # (uses size factors in its calculations)
+        write.csv(fpkm_data, paste(counts_folder, "/fpkm_counts.csv",sep=""))
     }
 
     ### Make plots of the data ###

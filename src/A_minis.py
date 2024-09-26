@@ -1,6 +1,5 @@
 # This script contains mini extra functions
 import os
-import pandas as pd
 import subprocess
 
 # Quick functions to access the var/cond under which the given SRR is stored
