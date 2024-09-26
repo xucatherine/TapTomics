@@ -3,14 +3,13 @@ BIEN470 project. A pipeline that analyses transcriptome data and lists genes who
 
 Languages/compilers to install:
 - Python
-- R
+- R, XQuartz
 - Java Runtime Environment (JRE)
 - GCC, XCode
 
 Tools to install (the pipeline will ask for the path to these toolkits):
 - SRA Toolkit
 - FastQC
-- RNA STAR
 - Seq2Fun
 
 ## Install Python packages
